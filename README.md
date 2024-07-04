@@ -23,6 +23,20 @@
 
 ### DB ERD
 ![ERD.png](docs/image/dbErd.png)
+
+### Dummy Data - Postman
+- **좌석 조회**
+![img.png](docs/image/seat_result.png)
+- **좌석 예약**
+![img_1.png](docs/image/reservation_result.png)
+- **결제**
+![img_2.png](docs/image/payment_result.png)
+- **토큰 발급**
+![img_3.png](docs/image/token_result.png)
+- **대기열 조회**
+![img_4.png](docs/image/check_result.png)
+- **충전**
+![img.png](docs/image/charge_result.png)
 ---
 ## 회고
 
