@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: hhplus-concert
+
+server:
+  servlet:
+    context-path: /api
