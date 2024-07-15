@@ -16,7 +16,7 @@ public class WaitingQueueScheduler { // 대기열 관련 스케줄러
     @Scheduled(fixedRate = 5000) // 매 5초마다 스케줄러 실행
     public void activeToken() {
         log.info("token을 active하는 스케줄러 실행");
-        waitingQueueFacade.activeToken();
+        waitingQueueFacade.active();
     }
 
     @Scheduled(cron = "0 0 0 * * *") // 매일 자정마다 스케줄러 실행
