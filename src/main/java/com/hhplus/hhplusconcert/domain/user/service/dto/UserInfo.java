@@ -6,9 +6,9 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record UserResponse(Long userId, BigDecimal balance) {
-    public static UserResponse of(User user) {
-        return UserResponse.builder()
+public record UserInfo(Long userId, BigDecimal balance) {
+    public static UserInfo of(User user) {
+        return UserInfo.builder()
                 .userId(user.getUserId())
                 .balance(user.getBalance())
                 .build();

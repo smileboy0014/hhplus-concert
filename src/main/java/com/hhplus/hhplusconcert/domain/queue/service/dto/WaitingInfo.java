@@ -3,9 +3,9 @@ package com.hhplus.hhplusconcert.domain.queue.service.dto;
 import lombok.Builder;
 
 @Builder
-public record WaitingQueueInfoResponse(long waitingNumber, long expectedWaitingTime) {
-    public static WaitingQueueInfoResponse of(long waitingNumber, long expectedWaitingTime) {
-        return WaitingQueueInfoResponse
+public record WaitingInfo(long waitingNumber, long expectedWaitingTime) {
+    public static WaitingInfo of(long waitingNumber, long expectedWaitingTime) {
+        return WaitingInfo
                 .builder()
                 .waitingNumber(waitingNumber)
                 .expectedWaitingTime(expectedWaitingTime)

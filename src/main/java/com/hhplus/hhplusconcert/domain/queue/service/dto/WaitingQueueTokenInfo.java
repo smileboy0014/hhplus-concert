@@ -3,10 +3,10 @@ package com.hhplus.hhplusconcert.domain.queue.service.dto;
 import lombok.Builder;
 
 @Builder
-public record WaitingQueueTokenResponse(String token) {
-    public static WaitingQueueTokenResponse of(String token) {
+public record WaitingQueueTokenInfo(String token) {
+    public static WaitingQueueTokenInfo of(String token) {
 
-        return WaitingQueueTokenResponse
+        return WaitingQueueTokenInfo
                 .builder()
                 .token(token)
                 .build();

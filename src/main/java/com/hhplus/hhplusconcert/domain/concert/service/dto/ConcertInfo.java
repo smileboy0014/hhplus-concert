@@ -11,16 +11,16 @@ import java.util.Optional;
 import static com.hhplus.hhplusconcert.common.utils.StringUtils.getPeriod;
 
 @Builder
-public record ConcertResponse(Long concertId, String name,
-                              String place,
-                              String period
+public record ConcertInfo(Long concertId, String name,
+                          String place,
+                          String period
 ) {
 
-    public static ConcertResponse of(Concert concert, List<ConcertDate> concertDates) {
-        return ConcertResponse.builder()
+    public static ConcertInfo of(Concert concert, List<ConcertDate> concertDates) {
+        return ConcertInfo.builder()
                 .concertId(concert.getConcertId())
                 .name(concert.getName())
-                .place(concert.getPlace() == null ? "-" : concert.getPlace().getName())
+                .place(concertDates.isEmpty() ? "-" : concertDates.get(0).getPlaceInfo().getName())
                 .period(getConcertPeriod(concertDates))
                 .build();
     }
