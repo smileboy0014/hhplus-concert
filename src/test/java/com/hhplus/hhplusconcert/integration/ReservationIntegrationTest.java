@@ -1,6 +1,5 @@
 package com.hhplus.hhplusconcert.integration;
 
-import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
 import com.hhplus.hhplusconcert.common.utils.DateUtils;
 import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
@@ -14,8 +13,8 @@ import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
 import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
 import com.hhplus.hhplusconcert.domain.concert.repository.PlaceRepository;
 import com.hhplus.hhplusconcert.domain.concert.repository.ReservationRepository;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationReserveServiceRequest;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationResponse;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
@@ -62,7 +61,7 @@ class ReservationIntegrationTest {
 
         Concert concert = concertRepository.addConcert(Concert.builder()
                 .name("싸이 흠뻑쇼")
-                .place(place)
+//                .place(place)
                 .build());
 
         List<ConcertDate> concertDates = new ArrayList<>();
@@ -81,32 +80,32 @@ class ReservationIntegrationTest {
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(120000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.C.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.C)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 30) { // B class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(150000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.B.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.B)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 40) { // A class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(170000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.A.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.A)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else {
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(190000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.S.getDegree())
-                        .status(SeatStatus.AVAILABLE.getStatus())
+                        .ticketClass(TicketClass.S)
+                        .status(SeatStatus.AVAILABLE)
                         .build());
             }
         }
@@ -139,10 +138,10 @@ class ReservationIntegrationTest {
                 .build();
 
         // when
-        ReservationResponse result = reservationFacade.reserveSeat(request);
+        ReservationInfo result = reservationFacade.reserveSeat(request);
 
         // then
-        assertThat(result.status()).isEqualTo(ReservationStatus.PROGRESSING.getStatus());
+        assertThat(result.status()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
     }
 
     @Test
@@ -164,7 +163,7 @@ class ReservationIntegrationTest {
         reservationFacade.reserveSeat(request);
 
         // when
-        List<ReservationResponse> result = reservationFacade.getReservations(user.getUserId());
+        List<ReservationInfo> result = reservationFacade.getReservations(user.getUserId());
 
         // then
         assertThat(result).hasSize(1);
@@ -177,7 +176,7 @@ class ReservationIntegrationTest {
         Long userId = 1L;
 
         // when
-        List<ReservationResponse> result = reservationFacade.getReservations(userId);
+        List<ReservationInfo> result = reservationFacade.getReservations(userId);
 
         // then
         assertThat(result).isEmpty();
@@ -199,16 +198,16 @@ class ReservationIntegrationTest {
                 .userId(user.getUserId())
                 .build();
 
-        ReservationResponse response = reservationFacade.reserveSeat(request);
+        ReservationInfo response = reservationFacade.reserveSeat(request);
 
         // when
         reservationFacade.cancelReservation(response.reservationId());
-        List<ReservationResponse> result = reservationFacade.getReservations(user.getUserId());
+        List<ReservationInfo> result = reservationFacade.getReservations(user.getUserId());
 
         // then
         assertThat(result.get(0))
                 .extracting("status", "paymentInfo.status")
-                .containsExactly(ReservationStatus.CANCEL.getStatus(), PaymentStatus.CANCEL.getStatus());
+                .containsExactly(ReservationStatus.CANCEL, PaymentStatus.CANCEL);
     }
 
     @Test

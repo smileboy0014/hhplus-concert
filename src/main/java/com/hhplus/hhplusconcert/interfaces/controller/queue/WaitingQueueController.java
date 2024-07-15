@@ -1,8 +1,8 @@
 package com.hhplus.hhplusconcert.interfaces.controller.queue;
 
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueResponse;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenResponse;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueEnterRequest;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueTokenRequest;
@@ -33,9 +33,9 @@ public class WaitingQueueController {
      * @return ApiResultResponse 토큰 정보를 반환한다.
      */
     @Operation(summary = "토큰 발급 요청")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueTokenResponse.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueTokenInfo.class)))
     @PostMapping("/issue-token")
-    public ApiResultResponse<WaitingQueueTokenResponse> issueToken(@RequestBody @Valid WaitingQueueTokenRequest request) {
+    public ApiResultResponse<WaitingQueueTokenInfo> issueToken(@RequestBody @Valid WaitingQueueTokenRequest request) {
         return ApiResultResponse.ok(waitingQueueFacade.issueToken(request.toServiceRequest()));
     }
 
@@ -46,9 +46,9 @@ public class WaitingQueueController {
      * @return ApiResultResponse 대기열 정보를 반환한다.
      */
     @Operation(summary = "대기열 저장")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueResponse.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueInfo.class)))
     @PostMapping("/enter")
-    public ApiResultResponse<WaitingQueueResponse> enterQueue(@RequestBody @Valid WaitingQueueEnterRequest request) {
+    public ApiResultResponse<WaitingQueueInfo> enterQueue(@RequestBody @Valid WaitingQueueEnterRequest request) {
         return ApiResultResponse.ok(waitingQueueFacade.enterQueue(request.toServiceRequest()));
     }
 
@@ -59,9 +59,9 @@ public class WaitingQueueController {
      * @return ApiResultResponse 대기열 정보를 반환한다.
      */
     @Operation(summary = "대기열 확인")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueResponse.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueInfo.class)))
     @PostMapping("/check")
-    public ApiResultResponse<WaitingQueueResponse> checkQueue(@RequestBody @Valid WaitingQueueEnterRequest request) {
+    public ApiResultResponse<WaitingQueueInfo> checkQueue(@RequestBody @Valid WaitingQueueEnterRequest request) {
 
         return ApiResultResponse.ok(waitingQueueFacade.checkQueue(request.toServiceRequest()));
 

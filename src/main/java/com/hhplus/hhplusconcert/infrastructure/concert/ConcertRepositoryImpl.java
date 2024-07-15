@@ -4,6 +4,7 @@ import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
 import com.hhplus.hhplusconcert.domain.concert.entity.Concert;
 import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
 import com.hhplus.hhplusconcert.domain.concert.entity.Seat;
+import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -58,7 +59,7 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public boolean existSeatByConcertDateAndStatus(Long concertDateId, String status) {
+    public boolean existSeatByConcertDateAndStatus(Long concertDateId, SeatStatus status) {
         return seatJpaRepository.existsByConcertDateInfo_concertDateIdAndStatus(concertDateId, status);
     }
 
@@ -69,7 +70,7 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public List<Seat> findAllSeatByConcertDateIdAndStatus(Long concertDateId, String status) {
+    public List<Seat> findAllSeatByConcertDateIdAndStatus(Long concertDateId, SeatStatus status) {
         return seatJpaRepository.findAllByConcertDateInfo_concertDateIdAndStatus(concertDateId, status);
     }
 

@@ -3,7 +3,7 @@ package com.hhplus.hhplusconcert.domain.user.service;
 import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserResponse;
+import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserServiceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +45,7 @@ class UserServiceTest {
         when(userRepository.findUserByUserId(user.getUserId())).thenReturn(user);
 
         // when
-        UserResponse result = userService.getBalance(user.getUserId());
+        UserInfo result = userService.getBalance(user.getUserId());
 
         // then
         assertThat(result.balance()).isEqualTo(BigDecimal.valueOf(50000));
@@ -90,7 +90,7 @@ class UserServiceTest {
         when(userRepository.findUserByUserId(userId)).thenReturn(user);
 
         // when
-        UserResponse result = userService.chargeBalance(request);
+        UserInfo result = userService.chargeBalance(request);
 
         // then
         assertThat(result.balance()).isEqualTo(chargeAmount);

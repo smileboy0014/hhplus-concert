@@ -1,16 +1,10 @@
 package com.hhplus.hhplusconcert.domain.payment.enums;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
-@Getter
 public enum PaymentStatus {
 
-    WAIT("wait"),
-    COMPLETE("complete"),
-    CANCEL("cancel"),
-    REFUND("refund");
+    WAIT, // 결제 대기
+    COMPLETE, // 결제 완료
+    CANCEL, // 결제 취소 완료
+    REFUND // 결제 환불 완료
 
-    private final String status;
 }

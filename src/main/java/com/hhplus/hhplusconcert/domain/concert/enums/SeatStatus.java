@@ -1,14 +1,8 @@
 package com.hhplus.hhplusconcert.domain.concert.enums;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
-@Getter
 public enum SeatStatus {
 
-    AVAILABLE("available"),
-    UNAVAILABLE("unavailable");
+    AVAILABLE, // 이용 가능
+    UNAVAILABLE // 이용 불가능
 
-    private final String status;
 }

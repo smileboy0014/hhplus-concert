@@ -1,6 +1,7 @@
 package com.hhplus.hhplusconcert.domain.concert.entity;
 
 import com.hhplus.hhplusconcert.domain.common.model.BaseTimeEntity;
+import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -37,14 +38,22 @@ public class Reservation extends BaseTimeEntity {
 
     private int seatNumber;
 
-    private String status; // 예약 취소 / 진행 중 / 예약 완료
+    @Enumerated(EnumType.STRING)
+    private ReservationStatus status; // 예약 취소 / 진행 중 / 예약 완료
+
+    public void cancel() {
+        this.status = ReservationStatus.CANCEL;
+    }
+
+    public void reserve() {
+        this.status = ReservationStatus.TEMPORARY_RESERVED;
+    }
+
+    public void complete() {
+        this.status = ReservationStatus.COMPLETED;
+    }
 
     @CreatedDate
     private LocalDateTime reservedAt;
-
-    public void changeStatus(String status) {
-        this.status = status;
-    }
-
 
 }

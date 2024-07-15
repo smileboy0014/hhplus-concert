@@ -1,7 +1,7 @@
 package com.hhplus.hhplusconcert.interfaces.controller.reservation;
 
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationResponse;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationReserveRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,9 +34,9 @@ public class ReservationController {
      * @return ApiResultResponse 예약 완료 정보를 반환한다.
      */
     @Operation(summary = "좌석 예약 요청")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ReservationResponse.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ReservationInfo.class)))
     @PostMapping
-    public ApiResultResponse<ReservationResponse> reserveSeat(@RequestBody @Valid ReservationReserveRequest request) {
+    public ApiResultResponse<ReservationInfo> reserveSeat(@RequestBody @Valid ReservationReserveRequest request) {
 
         return ApiResultResponse.ok(reservationFacade.reserveSeat(request.toServiceRequest()));
     }
@@ -48,9 +48,9 @@ public class ReservationController {
      * @return ApiResultResponse 나의 예약 내역을 반환한다.
      */
     @Operation(summary = "예약 내역 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReservationResponse.class))))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReservationInfo.class))))
     @GetMapping("/{userId}")
-    public ApiResultResponse<List<ReservationResponse>> getReservations(@PathVariable(name = "userId") @NotNull Long userId) {
+    public ApiResultResponse<List<ReservationInfo>> getReservations(@PathVariable(name = "userId") @NotNull Long userId) {
 
         return ApiResultResponse.ok(reservationFacade.getReservations(userId));
     }

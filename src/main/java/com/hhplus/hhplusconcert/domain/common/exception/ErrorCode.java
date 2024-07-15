@@ -24,6 +24,7 @@ public enum ErrorCode {
     // Payment 관련 ErrorCode
     PAYMENT_IS_NOT_FOUND("결제 내역이 존재하지 않습니다."),
     NOT_AVAILABLE_STATE_PAYMENT("결제 가능한 상태가 아닙니다"),
+    ALREADY_CANCEL_OR_REFUND("이미 취소됐거나 환불 처리된 결제 정보입니다."),
 
     // WaitingQueue 관련 ErrorCode
 

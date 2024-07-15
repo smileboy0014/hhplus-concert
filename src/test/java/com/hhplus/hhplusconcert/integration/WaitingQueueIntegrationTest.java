@@ -7,8 +7,8 @@ import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueEnterServiceRequest;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueResponse;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenResponse;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenServiceRequest;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
@@ -49,7 +49,7 @@ class WaitingQueueIntegrationTest {
                     .builder()
                     .user(user)
                     .requestTime(timestamp)
-                    .status(WaitingQueueStatus.ACTIVE.getStatus()).build();
+                    .status(WaitingQueueStatus.ACTIVE).build();
 
             waitingQueueRepository.save(waitingQueue);
         }
@@ -75,7 +75,7 @@ class WaitingQueueIntegrationTest {
                 .build();
 
         //when
-        WaitingQueueTokenResponse result = waitingQueueFacade.issueToken(request);
+        WaitingQueueTokenInfo result = waitingQueueFacade.issueToken(request);
 
         //then
         assertThat(result.token()).isNotEmpty();
@@ -107,7 +107,7 @@ class WaitingQueueIntegrationTest {
                 .builder()
                 .user(user1)
                 .requestTime(new Timestamp(System.currentTimeMillis()))
-                .status(WaitingQueueStatus.ACTIVE.getStatus()).build();
+                .status(WaitingQueueStatus.ACTIVE).build();
 
         waitingQueueRepository.save(waitingQueue);
 
@@ -121,7 +121,7 @@ class WaitingQueueIntegrationTest {
                 .build();
 
         // when
-        WaitingQueueResponse result = waitingQueueFacade.enterQueue(request);
+        WaitingQueueInfo result = waitingQueueFacade.enterQueue(request);
 
         // then
         assertThat(result)
@@ -143,7 +143,7 @@ class WaitingQueueIntegrationTest {
                 .build();
 
         // when
-        WaitingQueueResponse result = waitingQueueFacade.enterQueue(request);
+        WaitingQueueInfo result = waitingQueueFacade.enterQueue(request);
 
         // then
         assertThat(result)
@@ -162,7 +162,7 @@ class WaitingQueueIntegrationTest {
                 .builder()
                 .user(user1)
                 .requestTime(new Timestamp(System.currentTimeMillis()))
-                .status(WaitingQueueStatus.ACTIVE.getStatus()).build();
+                .status(WaitingQueueStatus.ACTIVE).build();
 
         waitingQueueRepository.save(waitingQueue1);
 
@@ -173,7 +173,7 @@ class WaitingQueueIntegrationTest {
                 .user(user2)
                 .token(tokne)
                 .requestTime(new Timestamp(System.currentTimeMillis()))
-                .status(WaitingQueueStatus.WAIT.getStatus()).build();
+                .status(WaitingQueueStatus.WAIT).build();
 
         waitingQueueRepository.save(waitingQueue2);
 
@@ -184,7 +184,7 @@ class WaitingQueueIntegrationTest {
                 .build();
 
         // when
-        WaitingQueueResponse result = waitingQueueFacade.checkQueue(request);
+        WaitingQueueInfo result = waitingQueueFacade.checkQueue(request);
 
         // then
         assertThat(result)

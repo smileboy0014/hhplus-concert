@@ -21,17 +21,17 @@ public class WaitingQueueRepositoryImpl implements WaitingQueueRepository {
     }
 
     @Override
-    public long countByStatusIs(String status) {
+    public long countByStatusIs(WaitingQueueStatus status) {
         return waitingQueueJpaRepository.countByStatusIs(status);
     }
 
     @Override
-    public WaitingQueue findByUserIdAndStatusIs(Long userId, String status) {
+    public WaitingQueue findByUserIdAndStatusIs(Long userId, WaitingQueueStatus status) {
         return waitingQueueJpaRepository.findByUser_UserIdAndStatusIs(userId, status);
     }
 
     @Override
-    public WaitingQueue findByUserIdAndStatusIsNot(Long userId, String status) {
+    public WaitingQueue findByUserIdAndStatusIsNot(Long userId, WaitingQueueStatus status) {
         return waitingQueueJpaRepository.findByUser_userIdAndStatusIsNot(userId, status);
     }
 
@@ -46,18 +46,18 @@ public class WaitingQueueRepositoryImpl implements WaitingQueueRepository {
     }
 
     @Override
-    public long countByRequestTimeBeforeAndStatusIs(Timestamp requestTime, String status) {
+    public long countByRequestTimeBeforeAndStatusIs(Timestamp requestTime, WaitingQueueStatus status) {
         return waitingQueueJpaRepository.countByRequestTimeBeforeAndStatusIs(requestTime, status);
     }
 
     @Override
-    public List<WaitingQueue> findAllByStatusIsOrderByRequestTime(String status) {
+    public List<WaitingQueue> findAllByStatusIsOrderByRequestTime(WaitingQueueStatus status) {
         return waitingQueueJpaRepository.findAllByStatusIsOrderByRequestTime(status);
     }
 
     @Override
     public void deleteAllExpireToken() {
-        waitingQueueJpaRepository.deleteAllByStatusIs(WaitingQueueStatus.EXPIRED.getStatus());
+        waitingQueueJpaRepository.deleteAllByStatusIs(WaitingQueueStatus.EXPIRED);
     }
 
     @Override

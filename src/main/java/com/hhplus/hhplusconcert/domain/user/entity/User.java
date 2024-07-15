@@ -27,7 +27,6 @@ public class User extends BaseTimeEntity {
     public void chargeBalance(BigDecimal amount) {
         if (amount.signum() < 0) throw new CustomBadRequestException(CHARGE_AMOUNT_IS_NEGATIVE,
                 "0 이상의 포인트를 충전 가능합니다.");
-
         this.balance = balance.add(amount);
     }
 

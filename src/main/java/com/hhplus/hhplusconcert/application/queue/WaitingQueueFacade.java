@@ -2,8 +2,8 @@ package com.hhplus.hhplusconcert.application.queue;
 
 import com.hhplus.hhplusconcert.domain.queue.service.WaitingQueueService;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueEnterServiceRequest;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueResponse;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenResponse;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenServiceRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,7 +20,7 @@ public class WaitingQueueFacade {
      * @param request userId 정보
      * @return WaitingQueueTokenResponse 토큰 정보를 반환한다.
      */
-    public WaitingQueueTokenResponse issueToken(WaitingQueueTokenServiceRequest request) {
+    public WaitingQueueTokenInfo issueToken(WaitingQueueTokenServiceRequest request) {
         return waitingQueueService.issueToken(request);
     }
 
@@ -30,7 +30,7 @@ public class WaitingQueueFacade {
      * @param request userId, token 정보
      * @return WaitingQueueResponse 대기열 정보를 반환한다.
      */
-    public WaitingQueueResponse enterQueue(WaitingQueueEnterServiceRequest request) {
+    public WaitingQueueInfo enterQueue(WaitingQueueEnterServiceRequest request) {
         return waitingQueueService.enterQueue(request);
     }
 
@@ -40,15 +40,15 @@ public class WaitingQueueFacade {
      * @param request userId, token 정보
      * @return WaitingQueueResponse 대기열 정보를 반환한다.
      */
-    public WaitingQueueResponse checkQueue(WaitingQueueEnterServiceRequest request) {
+    public WaitingQueueInfo checkQueue(WaitingQueueEnterServiceRequest request) {
         return waitingQueueService.checkQueue(request);
     }
 
     /**
      * 만료시간이 된 토큰을 만료시키고, 대기열에 있는 토큰을 순차적으로 active 시키는 유즈케이스를 실행한다.
      */
-    public void activeToken() {
-        waitingQueueService.activeToken();
+    public void active() {
+        waitingQueueService.active();
     }
 
     /**

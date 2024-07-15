@@ -33,7 +33,7 @@ class WaitingQueueFacadeTest {
                 .builder()
                 .userId(1L)
                 .build();
-        WaitingQueueTokenResponse response = WaitingQueueTokenResponse
+        WaitingQueueTokenInfo response = WaitingQueueTokenInfo
                 .builder()
                 .token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
                 .build();
@@ -41,7 +41,7 @@ class WaitingQueueFacadeTest {
         when(waitingQueueService.issueToken(request)).thenReturn(response);
 
         // when
-        WaitingQueueTokenResponse result = waitingQueueFacade.issueToken(request);
+        WaitingQueueTokenInfo result = waitingQueueFacade.issueToken(request);
 
         // then
         assertThat(result.token()).isNotEmpty();
@@ -57,7 +57,7 @@ class WaitingQueueFacadeTest {
                 .token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
                 .build();
 
-        WaitingQueueResponse response = WaitingQueueResponse
+        WaitingQueueInfo response = WaitingQueueInfo
                 .builder()
                 .isActive(false)
                 .build();
@@ -65,7 +65,7 @@ class WaitingQueueFacadeTest {
         when(waitingQueueService.enterQueue(request)).thenReturn(response);
 
         // when
-        WaitingQueueResponse result = waitingQueueFacade.enterQueue(request);
+        WaitingQueueInfo result = waitingQueueFacade.enterQueue(request);
 
         // then
         assertThat(result.isActive()).isFalse();
@@ -81,9 +81,9 @@ class WaitingQueueFacadeTest {
                 .token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
                 .build();
 
-        WaitingQueueResponse response = WaitingQueueResponse
+        WaitingQueueInfo response = WaitingQueueInfo
                 .builder()
-                .waitingInfo(WaitingQueueInfoResponse
+                .waitingInfo(WaitingInfo
                         .builder()
                         .waitingNumber(5L)
                         .build())
@@ -93,7 +93,7 @@ class WaitingQueueFacadeTest {
         when(waitingQueueService.checkQueue(request)).thenReturn(response);
 
         // when
-        WaitingQueueResponse result = waitingQueueFacade.checkQueue(request);
+        WaitingQueueInfo result = waitingQueueFacade.checkQueue(request);
 
         // then
         assertThat(result)

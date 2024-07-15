@@ -13,7 +13,7 @@ import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationReserveSer
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
 import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
@@ -66,7 +66,7 @@ class PaymentIntegrationTest {
 
         Concert concert = concertRepository.addConcert(Concert.builder()
                 .name("싸이 흠뻑쇼")
-                .place(place)
+//                .place(place)
                 .build());
 
         List<ConcertDate> concertDates = new ArrayList<>();
@@ -85,39 +85,38 @@ class PaymentIntegrationTest {
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(120000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.C.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.C)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 30) { // B class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(150000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.B.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.B)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 40) { // A class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(170000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.A.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.A)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else {
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(190000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.S.getDegree())
-                        .status(SeatStatus.AVAILABLE.getStatus())
+                        .ticketClass(TicketClass.S)
+                        .status(SeatStatus.AVAILABLE)
                         .build());
             }
         }
         concertRepository.addSeats(seats);
 
         User user = userRepository.addUser(User.builder().balance(BigDecimal.valueOf(200000)).build());
-        ;
 
         String token = jwtUtils.createToken(user.getUserId());
 
@@ -125,7 +124,7 @@ class PaymentIntegrationTest {
                 .builder()
                 .user(user)
                 .token(token)
-                .status(WaitingQueueStatus.ACTIVE.getStatus())
+                .status(WaitingQueueStatus.ACTIVE)
                 .build();
 
         waitingQueueRepository.save(queue);
@@ -139,7 +138,8 @@ class PaymentIntegrationTest {
                 .build();
 
         Seat seat = concertRepository.findBySeatConcertDateIdAndSeatNumber(request.concertDateId(), request.seatNumber());
-        seat.changeStatus(SeatStatus.UNAVAILABLE.getStatus());
+        seat.occupy();
+//        seat.changeStatus(SeatStatus.UNAVAILABLE.getStatus());
 
         Reservation reservation = reservationRepository.reserve(request.toReservationEntity(addedConcertDates.get(0), seat));
 
@@ -166,10 +166,11 @@ class PaymentIntegrationTest {
                 .build();
 
         //when
-        PaymentResponse result = paymentFacade.pay(request);
+        PaymentInfo result = paymentFacade.pay(request);
 
         //then
-        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE.getStatus());
+        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE);
+//        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE.getStatus());
     }
 
 }

@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 
@@ -43,12 +42,12 @@ public class ConcertService {
      *
      * @return ConcertResponse 콘서트 정보를 반환한다.
      */
-    public List<ConcertResponse> getConcerts() {
+    public List<ConcertInfo> getConcerts() {
 
         return concertRepository.findAllConcert().stream()
                 .map(concert -> {
                     List<ConcertDate> concertDates = concertRepository.findAllConcertDateByConcertId(concert.getConcertId());
-                    return ConcertResponse.of(concert, concertDates);
+                    return ConcertInfo.of(concert, concertDates);
                 })
                 .toList();
     }
@@ -58,11 +57,11 @@ public class ConcertService {
      *
      * @return ConcertResponse 콘서트 상세 정보를 반환한다.
      */
-    public ConcertResponse getConcert(Long concertId) {
+    public ConcertInfo getConcert(Long concertId) {
         Concert concert = concertRepository.findConcertByConcertId(concertId);
         List<ConcertDate> concertDates = concertRepository.findAllConcertDateByConcertId(concertId);
 
-        return ConcertResponse.of(concert, concertDates);
+        return ConcertInfo.of(concert, concertDates);
     }
 
     /**
@@ -71,14 +70,14 @@ public class ConcertService {
      * @param concertId concertId 정보
      * @return 콘서트 예약 날짜 정보를 반환한다.
      */
-    public List<ConcertDateResponse> getConcertDates(Long concertId) {
+    public List<ConcertDateInfo> getConcertDates(Long concertId) {
         List<ConcertDate> concertDates = concertRepository.findAllConcertDateByConcertId(concertId);
         validAvailableConcertDates(concertId, concertDates);
 
         return concertDates.stream()
                 .map(concertDate -> {
-                    boolean available = concertRepository.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE.getStatus());
-                    return ConcertDateResponse.of(concertDate, available);
+                    boolean available = concertRepository.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE);
+                    return ConcertDateInfo.of(concertDate, available);
                 })
                 .toList();
     }
@@ -89,13 +88,13 @@ public class ConcertService {
      * @param concertDateId concertDateId 정보
      * @return 예약 가능한 좌석 정보를 반환한다.
      */
-    public List<ConcertSeatResponse> getAvailableSeats(Long concertDateId) {
-        List<Seat> seats = concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE.getStatus());
+    public List<ConcertSeatInfo> getAvailableSeats(Long concertDateId) {
+        List<Seat> seats = concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE);
         validAvailableSeats(concertDateId, seats);
 
         return seats.stream()
-                .map(ConcertSeatResponse::of)
-                .collect(Collectors.toList());
+                .map(ConcertSeatInfo::of)
+                .toList();
     }
 
 
@@ -107,22 +106,22 @@ public class ConcertService {
      */
 
     @Transactional
-    public ReservationResponse reserveSeat(ReservationReserveServiceRequest request) {
+    public ReservationInfo reserveSeat(ReservationReserveServiceRequest request) {
         // 1 이미 예약이 있는지 확인
         validateExistingReservation(request.concertDateId(), request.seatNumber());
         // 2. concertDate 정보 조회
         ConcertDate concertDate = concertRepository.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(), request.concertId());
         // 3. seat 상태 변경
         Seat seat = concertRepository.findBySeatConcertDateIdAndSeatNumber(request.concertDateId(), request.seatNumber());
-        seat.changeStatus(SeatStatus.UNAVAILABLE.getStatus());
-        // 3. 예약 테이블 저장
+        seat.occupy();
+        // 4. 예약 테이블 저장
         Reservation reservation = reservationRepository.reserve(request.toReservationEntity(concertDate, seat));
-        // 4. 결제 건 생성
+        // 5. 결제 건 생성
         Payment payment = paymentRepository.createPayment(request.toPaymentEntity(reservation, seat));
 
-        return ReservationResponse.of(reservation,
-                ReservationConcertResponse.of(concertDate, seat),
-                ReservationPaymentResponse.of(payment)
+        return ReservationInfo.of(reservation,
+                ReservationConcertInfo.of(concertDate, seat),
+                ReservationPaymentInfo.of(payment)
         );
     }
 
@@ -133,14 +132,14 @@ public class ConcertService {
      * @param userId userId 정보
      * @return ReservationResponse 유저의 예약 정보를 반환한다.
      */
-    public List<ReservationResponse> getReservations(Long userId) {
+    public List<ReservationInfo> getReservations(Long userId) {
 
         return reservationRepository.findAllByUserId(userId).stream()
                 .map(reservation -> {
                     Payment payment = paymentRepository.findByReservationId(reservation.getReservationId());
-                    return ReservationResponse.of(reservation,
-                            ReservationConcertResponse.of(reservation),
-                            ReservationPaymentResponse.of(payment));
+                    return ReservationInfo.of(reservation,
+                            ReservationConcertInfo.of(reservation),
+                            ReservationPaymentInfo.of(payment));
                 })
                 .toList();
     }
@@ -152,52 +151,49 @@ public class ConcertService {
      */
     @Transactional
     public void cancelReservation(Long reservationId) {
-        // 1. 예약 취소로 상태 변경
+        // 1. 예약 조회
         Reservation reservation = reservationRepository.findByReservationId(reservationId);
-        reservation.changeStatus(ReservationStatus.CANCEL.getStatus());
-        // 2. 결제 상태 변경
+        // 1-1 예약 취소
+        reservation.cancel();
+        // 2. 결제 취소 or 환불 처리
         Payment payment = paymentRepository.findByReservationId(reservationId);
+        payment.cancel();
 
-        if (payment.getStatus().equals(PaymentStatus.WAIT.getStatus())) {
-            // 2-1. 결제 전에 취소한 경우
-            payment.changeStatus(PaymentStatus.CANCEL.getStatus());
-        } else if (payment.getStatus().equals(PaymentStatus.COMPLETE.getStatus())) {
-            // 2-2. 결제 후에 취소한 경우
-            payment.changeStatus(PaymentStatus.REFUND.getStatus());
-            // 2-3. 유저 잔액 반환
+        if (payment.getStatus() == PaymentStatus.REFUND) {
+            // 2-1. 유저 잔액 반환
             User user = userRepository.findUserByUserId(reservation.getUserId());
             user.chargeBalance(payment.getPaymentPrice());
         }
 
-        // 3. 좌석 예약 가능으로 상태 변경
+        // 3. 좌석 점유 취소(다시 예약 가능 상태로 변경)
         Seat seat = concertRepository.findSeatBySeatId(reservation.getSeatId());
-        seat.changeStatus(SeatStatus.AVAILABLE.getStatus());
+        seat.cancel();
+
     }
 
     /**
-     * 좌석을 계속 점유할 수 있는지 스케줄러로 확인한다.
+     * 좌석을 계속 점유할 수 있는지 확인한다.
      */
     @Transactional
     public void checkOccupiedSeat() {
         LocalDateTime nowTime = LocalDateTime.now();
 
         List<Reservation> reservations = reservationRepository.findAllByStatusIs(
-                ReservationStatus.PROGRESSING.getStatus());
+                ReservationStatus.TEMPORARY_RESERVED);
 
         reservations.forEach(reservation -> {
             LocalDateTime reservedAtTime = reservation.getReservedAt();
             Duration duration = Duration.between(reservedAtTime, nowTime);
 
             if (duration.toSeconds() > 5 * 60) { //5분이 넘었는지 확인
-                // 1. 예약 상태 취소로 변경
-                reservation.changeStatus(ReservationStatus.CANCEL.getStatus());
-                // 2. 결제 정보 취소
+                // 1. 예약 취소
+                reservation.cancel();
+                // 2. 결제 취소
                 Payment payment = paymentRepository.findByReservationId(reservation.getReservationId());
-                payment.changeStatus(PaymentStatus.CANCEL.getStatus());
+                payment.cancel();
                 // 3. 좌석 점유 취소(다시 예약 가능 상태로 변경)
                 Seat seat = concertRepository.findSeatBySeatId(reservation.getSeatId());
-                seat.changeStatus(SeatStatus.AVAILABLE.getStatus());
-
+                seat.cancel();
             }
         });
     }
@@ -214,7 +210,7 @@ public class ConcertService {
 
     private void validateExistingReservation(Long concertDateId, int seatNumber) {
         if (reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(
-                concertDateId, seatNumber, ReservationStatus.PROGRESSING.getStatus())) {
+                concertDateId, seatNumber, ReservationStatus.TEMPORARY_RESERVED)) {
             throw new CustomBadRequestException(RESERVATION_IS_ALREADY_EXISTED,
                     "이미 해당 좌석의 예약 내역이 존재합니다. [concertDateId: %d, seatNumber: %d]"
                             .formatted(concertDateId, seatNumber));

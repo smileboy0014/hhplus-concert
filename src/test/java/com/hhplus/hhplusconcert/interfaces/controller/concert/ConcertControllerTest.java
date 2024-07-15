@@ -1,10 +1,9 @@
 package com.hhplus.hhplusconcert.interfaces.controller.concert;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateResponse;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertResponse;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatResponse;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +32,9 @@ class ConcertControllerTest {
     @DisplayName("콘서트 목록을 조회한다.")
     void getConcerts() throws Exception {
         //given
-        List<ConcertResponse> response = List.of(
-                ConcertResponse.builder().build(),
-                ConcertResponse.builder().build());
+        List<ConcertInfo> response = List.of(
+                ConcertInfo.builder().build(),
+                ConcertInfo.builder().build());
 
         when(concertFacade.getConcerts()).thenReturn(response);
 
@@ -54,7 +53,7 @@ class ConcertControllerTest {
     void getConcert() throws Exception {
         //given
         Long concertId = 1L;
-        ConcertResponse response = ConcertResponse.builder().build();
+        ConcertInfo response = ConcertInfo.builder().build();
 
         when(concertFacade.getConcert(concertId)).thenReturn(response);
 
@@ -73,7 +72,7 @@ class ConcertControllerTest {
     void getConcertDates() throws Exception {
         //given
         Long concertId = 1L;
-        List<ConcertDateResponse> response = List.of(ConcertDateResponse.builder().build());
+        List<ConcertDateInfo> response = List.of(ConcertDateInfo.builder().build());
 
         when(concertFacade.getConcertDates(concertId)).thenReturn(response);
 
@@ -92,7 +91,7 @@ class ConcertControllerTest {
     void getSeats() throws Exception {
         //given
         Long concertDateId = 1L;
-        List<ConcertSeatResponse> response = List.of(ConcertSeatResponse.builder().build());
+        List<ConcertSeatInfo> response = List.of(ConcertSeatInfo.builder().build());
 
         when(concertFacade.getAvailableSeats(concertDateId)).thenReturn(response);
 
