@@ -11,14 +11,14 @@ import java.sql.Timestamp;
 public record WaitingQueueEnterServiceRequest(Long userId,
                                               String token) {
 
-    public WaitingQueue toEntity(User user, String status) {
+    public WaitingQueue toEntity(User user, WaitingQueueStatus status) {
         return WaitingQueue
                 .builder()
                 .user(user)
                 .token(token)
                 .status(status)
                 .requestTime(new Timestamp(System.currentTimeMillis()))
-                .activeTime(status.equals(WaitingQueueStatus.ACTIVE.getStatus()) ? new Timestamp(System.currentTimeMillis())
+                .activeTime(status == WaitingQueueStatus.ACTIVE ? new Timestamp(System.currentTimeMillis())
                         : null)
                 .build();
 

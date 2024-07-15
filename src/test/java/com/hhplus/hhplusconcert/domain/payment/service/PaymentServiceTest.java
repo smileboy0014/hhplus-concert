@@ -6,7 +6,7 @@ import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
 import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
@@ -59,7 +59,7 @@ class PaymentServiceTest {
 
         Payment payment = Payment
                 .builder()
-                .status(PaymentStatus.WAIT.getStatus())
+                .status(PaymentStatus.WAIT)
                 .price(BigDecimal.valueOf(50000))
                 .reservation(reservation)
                 .build();
@@ -73,14 +73,14 @@ class PaymentServiceTest {
 
         when(paymentRepository.findByReservationId(request.reservationId())).thenReturn(payment);
         when(userRepository.findUserByUserId(request.userId())).thenReturn(user);
-        when(waitingQueueRepository.findByUserIdAndStatusIs(1L, WaitingQueueStatus.ACTIVE.getStatus()))
+        when(waitingQueueRepository.findByUserIdAndStatusIs(1L, WaitingQueueStatus.ACTIVE))
                 .thenReturn(waitingQueue);
 
         //when
-        PaymentResponse result = paymentService.pay(request);
+        PaymentInfo result = paymentService.pay(request);
 
         //then
-        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE.getStatus());
+        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE);
     }
 
     @Test
@@ -95,7 +95,7 @@ class PaymentServiceTest {
 
         Payment payment = Payment
                 .builder()
-                .status(PaymentStatus.COMPLETE.getStatus())
+                .status(PaymentStatus.COMPLETE)
                 .build();
 
         when(paymentRepository.findByReservationId(request.reservationId())).thenReturn(payment);
@@ -120,7 +120,7 @@ class PaymentServiceTest {
         Payment payment = Payment
                 .builder()
                 .price(BigDecimal.valueOf(100000))
-                .status(PaymentStatus.WAIT.getStatus())
+                .status(PaymentStatus.WAIT)
                 .build();
 
         User user = User

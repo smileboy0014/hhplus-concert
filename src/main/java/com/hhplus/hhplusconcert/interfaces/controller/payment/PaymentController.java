@@ -1,7 +1,7 @@
 package com.hhplus.hhplusconcert.interfaces.controller.payment;
 
 import com.hhplus.hhplusconcert.application.payment.PaymentFacade;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PayRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,9 +31,9 @@ public class PaymentController {
      * @return ApiResultResponse 결제 결과를 반환한다.
      */
     @Operation(summary = "결제 요청")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = PaymentResponse.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = PaymentInfo.class)))
     @PostMapping("/pay")
-    public ApiResultResponse<PaymentResponse> pay(@RequestBody @Valid PayRequest request) {
+    public ApiResultResponse<PaymentInfo> pay(@RequestBody @Valid PayRequest request) {
 
         return ApiResultResponse.ok(paymentFacade.pay(request.toServiceRequest()));
     }

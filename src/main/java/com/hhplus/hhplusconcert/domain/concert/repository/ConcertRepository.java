@@ -3,6 +3,7 @@ package com.hhplus.hhplusconcert.domain.concert.repository;
 import com.hhplus.hhplusconcert.domain.concert.entity.Concert;
 import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
 import com.hhplus.hhplusconcert.domain.concert.entity.Seat;
+import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,13 +32,13 @@ public interface ConcertRepository {
     // Seat 관련
     List<Seat> addSeats(List<Seat> seat);
 
-    List<Seat> findAllSeatByConcertDateIdAndStatus(Long concertDateId, String status);
+    List<Seat> findAllSeatByConcertDateIdAndStatus(Long concertDateId, SeatStatus status);
 
     Seat findSeatBySeatId(Long seatId);
 
     Seat findBySeatConcertDateIdAndSeatNumber(Long concertDateId, int seatNumber);
 
-    boolean existSeatByConcertDateAndStatus(Long concertId, String status);
+    boolean existSeatByConcertDateAndStatus(Long concertId, SeatStatus status);
 
     // Common
     void deleteAll();

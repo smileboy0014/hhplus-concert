@@ -2,8 +2,8 @@ package com.hhplus.hhplusconcert.interfaces.controller.queue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueResponse;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenResponse;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueEnterRequest;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueTokenRequest;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +40,7 @@ class WaitingQueueControllerTest {
                 .userId(1L)
                 .build();
 
-        WaitingQueueTokenResponse response = WaitingQueueTokenResponse
+        WaitingQueueTokenInfo response = WaitingQueueTokenInfo
                 .builder()
                 .token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
                 .build();
@@ -67,7 +67,7 @@ class WaitingQueueControllerTest {
                 .token("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
                 .build();
 
-        WaitingQueueResponse response = WaitingQueueResponse.builder().build();
+        WaitingQueueInfo response = WaitingQueueInfo.builder().build();
 
         when(waitingQueueFacade.enterQueue(request.toServiceRequest())).thenReturn(response);
 
@@ -92,7 +92,7 @@ class WaitingQueueControllerTest {
                 .build();
 
         // when
-        WaitingQueueResponse response = WaitingQueueResponse.builder().build();
+        WaitingQueueInfo response = WaitingQueueInfo.builder().build();
 
         when(waitingQueueFacade.checkQueue(request.toServiceRequest())).thenReturn(response);
 

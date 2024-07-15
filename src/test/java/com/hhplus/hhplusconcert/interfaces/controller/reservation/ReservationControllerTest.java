@@ -2,8 +2,8 @@ package com.hhplus.hhplusconcert.interfaces.controller.reservation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationReserveServiceRequest;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationReserveRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,7 +54,7 @@ class ReservationControllerTest {
                 .userId(1L)
                 .build();
 
-        ReservationResponse response = ReservationResponse.builder()
+        ReservationInfo response = ReservationInfo.builder()
                 .reservationId(1L).build();
 
         when(reservationFacade.reserveSeat(serviceRequest)).thenReturn(response);
@@ -77,7 +77,7 @@ class ReservationControllerTest {
         // given
         Long userId = 1L;
 
-        when(reservationFacade.getReservations(userId)).thenReturn(List.of(ReservationResponse.builder().build()));
+        when(reservationFacade.getReservations(userId)).thenReturn(List.of(ReservationInfo.builder().build()));
 
         // when // then
         mockMvc.perform(get("/v1/reservations/%d".formatted(userId)))

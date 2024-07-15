@@ -8,17 +8,17 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 @Builder
-public record ReservationConcertResponse(Long concertId,
-                                         Long concertDateId,
-                                         Long seatId,
-                                         String concertName,
-                                         String concertDate,
-                                         BigDecimal seatPrice,
-                                         int seatNumber) {
+public record ReservationConcertInfo(Long concertId,
+                                     Long concertDateId,
+                                     Long seatId,
+                                     String concertName,
+                                     String concertDate,
+                                     BigDecimal seatPrice,
+                                     int seatNumber) {
 
-    public static ReservationConcertResponse of(ConcertDate concertDate, Seat seat) {
+    public static ReservationConcertInfo of(ConcertDate concertDate, Seat seat) {
 
-        return ReservationConcertResponse.builder()
+        return ReservationConcertInfo.builder()
                 .concertId(concertDate.getConcertInfo().getConcertId())
                 .concertDateId(concertDate.getConcertDateId())
                 .seatId(seat.getSeatId())
@@ -29,9 +29,9 @@ public record ReservationConcertResponse(Long concertId,
                 .build();
     }
 
-    public static ReservationConcertResponse of(Reservation reservation) {
+    public static ReservationConcertInfo of(Reservation reservation) {
 
-        return ReservationConcertResponse.builder()
+        return ReservationConcertInfo.builder()
                 .concertId(reservation.getConcertId())
                 .concertDateId(reservation.getConcertDateId())
                 .seatId(reservation.getSeatId())

@@ -2,6 +2,7 @@ package com.hhplus.hhplusconcert.infrastructure.concert;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
 import com.hhplus.hhplusconcert.domain.concert.entity.Reservation;
+import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import com.hhplus.hhplusconcert.domain.concert.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -27,12 +28,12 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     }
 
     @Override
-    public boolean existsByConcertDateIdAndSeatNumberAndStatusIs(Long concertDateId, int seatNumber, String status) {
+    public boolean existsByConcertDateIdAndSeatNumberAndStatusIs(Long concertDateId, int seatNumber, ReservationStatus status) {
         return reservationJpaRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(concertDateId, seatNumber, status);
     }
 
     @Override
-    public List<Reservation> findAllByStatusIs(String status) {
+    public List<Reservation> findAllByStatusIs(ReservationStatus status) {
         return reservationJpaRepository.findAllByStatusIs(status);
     }
 

@@ -36,14 +36,14 @@ class ConcertFacadeTest {
     @DisplayName("콘서트 목록 조회 유즈케이스를 실행한다.")
     void getConcerts() {
         //given
-        List<ConcertResponse> response = List.of(
-                ConcertResponse.builder()
+        List<ConcertInfo> response = List.of(
+                ConcertInfo.builder()
                         .concertId(1L)
                         .name("싸이 흠뻑쇼")
                         .period("20204-06-20~20204-06-21")
                         .place("서울대공원")
                         .build(),
-                ConcertResponse.builder()
+                ConcertInfo.builder()
                         .concertId(2L)
                         .name("싸이 흠뻑쇼")
                         .period("20204-06-23~20204-06-24")
@@ -53,7 +53,7 @@ class ConcertFacadeTest {
         when(concertService.getConcerts()).thenReturn(response);
 
         //when
-        List<ConcertResponse> result = concertFacade.getConcerts();
+        List<ConcertInfo> result = concertFacade.getConcerts();
 
         //then
         assertThat(result).hasSize(2);
@@ -63,7 +63,7 @@ class ConcertFacadeTest {
     @DisplayName("콘서트 상세 조회 유즈케이스를 실행한다.")
     void getConcert() {
         //given
-        ConcertResponse response = ConcertResponse.builder()
+        ConcertInfo response = ConcertInfo.builder()
                 .concertId(1L)
                 .name("싸이 흠뻑쇼")
                 .period("20204-06-20~20204-06-21")
@@ -72,7 +72,7 @@ class ConcertFacadeTest {
         when(concertService.getConcert(1L)).thenReturn(response);
 
         //when
-        ConcertResponse result = concertFacade.getConcert(1L);
+        ConcertInfo result = concertFacade.getConcert(1L);
 
         //then
         assertThat(result.name()).isEqualTo("싸이 흠뻑쇼");
@@ -83,8 +83,8 @@ class ConcertFacadeTest {
     void getConcertDates() {
         //given
         Long concertId = 1L;
-        List<ConcertDateResponse> response = List.of(
-                ConcertDateResponse.builder()
+        List<ConcertDateInfo> response = List.of(
+                ConcertDateInfo.builder()
                         .isAvailable(true)
                         .concertDate("20204-06-20")
                         .build());
@@ -92,7 +92,7 @@ class ConcertFacadeTest {
         when(concertService.getConcertDates(concertId)).thenReturn(response);
 
         //when
-        List<ConcertDateResponse> result = concertFacade.getConcertDates(concertId);
+        List<ConcertDateInfo> result = concertFacade.getConcertDates(concertId);
 
         //then
         assertThat(result).hasSize(1);
@@ -103,21 +103,21 @@ class ConcertFacadeTest {
     void getAvailableSeats() {
         //given
         Long concertDateId = 1L;
-        List<ConcertSeatResponse> response = List.of(
-                ConcertSeatResponse.builder()
+        List<ConcertSeatInfo> response = List.of(
+                ConcertSeatInfo.builder()
                         .seatNumber(2)
                         .build(),
-                ConcertSeatResponse.builder()
+                ConcertSeatInfo.builder()
                         .seatNumber(3)
                         .build(),
-                ConcertSeatResponse.builder()
+                ConcertSeatInfo.builder()
                         .seatNumber(4)
                         .build());
 
         when(concertService.getAvailableSeats(concertDateId)).thenReturn(response);
 
         //when
-        List<ConcertSeatResponse> result = concertFacade.getAvailableSeats(concertDateId);
+        List<ConcertSeatInfo> result = concertFacade.getAvailableSeats(concertDateId);
 
         //then
         assertThat(result).hasSize(3);
@@ -135,14 +135,14 @@ class ConcertFacadeTest {
                 .userId(1L)
                 .build();
 
-        ReservationResponse response = ReservationResponse.builder()
+        ReservationInfo response = ReservationInfo.builder()
                 .reservationId(1L)
                 .build();
 
         when(concertService.reserveSeat(request)).thenReturn(response);
 
         // when
-        ReservationResponse result = reservationFacade.reserveSeat(request);
+        ReservationInfo result = reservationFacade.reserveSeat(request);
 
         // then
         assertThat(result.reservationId()).isEqualTo(1L);
@@ -154,8 +154,8 @@ class ConcertFacadeTest {
     void getReservations() {
         // given
         Long userId = 1L;
-        List<ReservationResponse> response = List.of(
-                ReservationResponse
+        List<ReservationInfo> response = List.of(
+                ReservationInfo
                         .builder()
                         .reservationId(1L)
                         .build());
@@ -163,7 +163,7 @@ class ConcertFacadeTest {
         when(concertService.getReservations(userId)).thenReturn(response);
 
         // when
-        List<ReservationResponse> result = reservationFacade.getReservations(userId);
+        List<ReservationInfo> result = reservationFacade.getReservations(userId);
 
         // then
         assertThat(result).hasSize(1);

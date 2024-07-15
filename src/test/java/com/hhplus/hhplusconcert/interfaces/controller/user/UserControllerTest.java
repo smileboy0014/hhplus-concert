@@ -2,7 +2,7 @@ package com.hhplus.hhplusconcert.interfaces.controller.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.user.UserFacade;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserResponse;
+import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class UserControllerTest {
     void getBalance() throws Exception {
         // given
         Long userId = 1L;
-        UserResponse response = UserResponse.builder().build();
+        UserInfo response = UserInfo.builder().build();
 
         when(userFacade.getBalance(userId)).thenReturn(response);
 
@@ -59,7 +59,7 @@ class UserControllerTest {
                 .balance(amount)
                 .build();
 
-        UserResponse response = UserResponse.builder().balance(amount).build();
+        UserInfo response = UserInfo.builder().balance(amount).build();
 
         when(userFacade.chargeBalance(request.toServiceRequest(userId))).thenReturn(response);
 

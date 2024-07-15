@@ -1,7 +1,7 @@
 package com.hhplus.hhplusconcert.application.user;
 
 import com.hhplus.hhplusconcert.domain.user.service.UserService;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserResponse;
+import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserServiceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +32,7 @@ class UserFacadeTest {
     @DisplayName("유저 잔액을 조회하는 유즈케이스를 실행한다.")
     void getBalance() {
         // given
-        UserResponse response = UserResponse
+        UserInfo response = UserInfo
                 .builder()
                 .userId(1L)
                 .balance(BigDecimal.valueOf(100000))
@@ -41,7 +41,7 @@ class UserFacadeTest {
         when(userService.getBalance(response.userId())).thenReturn(response);
 
         // when
-        UserResponse result = userFacade.getBalance(response.userId());
+        UserInfo result = userFacade.getBalance(response.userId());
 
         // then
         assertThat(result.balance()).isEqualTo(BigDecimal.valueOf(100000));
@@ -60,7 +60,7 @@ class UserFacadeTest {
                 .balance(chargeAmount)
                 .build();
 
-        UserResponse response = UserResponse.builder()
+        UserInfo response = UserInfo.builder()
                 .userId(userId)
                 .balance(chargeAmount)
                 .build();
@@ -68,7 +68,7 @@ class UserFacadeTest {
         when(userService.chargeBalance(request)).thenReturn(response);
 
         // when
-        UserResponse result = userFacade.chargeBalance(request);
+        UserInfo result = userFacade.chargeBalance(request);
 
         // then
         assertThat(result.balance()).isEqualTo(chargeAmount);

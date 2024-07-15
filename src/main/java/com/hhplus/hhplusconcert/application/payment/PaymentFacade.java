@@ -2,7 +2,7 @@ package com.hhplus.hhplusconcert.application.payment;
 
 import com.hhplus.hhplusconcert.domain.payment.service.PaymentService;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +18,7 @@ public class PaymentFacade {
      * @param request reservationId, userId 정보
      * @return PaymentResponse 결제 결과를 반환한다.
      */
-    public PaymentResponse pay(PayServiceRequest request) {
+    public PaymentInfo pay(PayServiceRequest request) {
         return paymentService.pay(request);
     }
 }

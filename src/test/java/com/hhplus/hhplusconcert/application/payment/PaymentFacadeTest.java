@@ -3,7 +3,7 @@ package com.hhplus.hhplusconcert.application.payment;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
 import com.hhplus.hhplusconcert.domain.payment.service.PaymentService;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,19 +38,19 @@ class PaymentFacadeTest {
                 .reservationId(1L)
                 .build();
 
-        PaymentResponse response = PaymentResponse
+        PaymentInfo response = PaymentInfo
                 .builder()
                 .paymentId(1L)
-                .status(PaymentStatus.COMPLETE.getStatus())
+                .status(PaymentStatus.COMPLETE)
                 .build();
 
         when(paymentService.pay(request)).thenReturn(response);
 
         // when
-        PaymentResponse result = paymentFacade.pay(request);
+        PaymentInfo result = paymentFacade.pay(request);
 
         // then
-        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE.getStatus());
+        assertThat(result.status()).isEqualTo(PaymentStatus.COMPLETE);
     }
 
 }

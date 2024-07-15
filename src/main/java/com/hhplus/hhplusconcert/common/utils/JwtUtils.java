@@ -38,6 +38,7 @@ public class JwtUtils {
 
     /**
      * 토큰을 생성한다.
+     *
      * @param userId userId 정보
      * @return String token 정보
      */
@@ -54,6 +55,7 @@ public class JwtUtils {
 
     /**
      * JWT 토큰 정보를 해독한다.
+     *
      * @param token JWT token 정보
      * @return Long userId 정보
      */
@@ -97,17 +99,19 @@ public class JwtUtils {
 
     /**
      * db에 있는 토큰 상태를 만료로 변경한다.
+     *
      * @param token JWT 토큰 정보
      */
     private void changeTokenStatus(String token) {
         WaitingQueue expiredToken = waitingQueueRepository.findByToken(token);
-        expiredToken.changeTokenStatus(WaitingQueueStatus.EXPIRED.getStatus());
+        expiredToken.expire();
     }
 
     /**
      * WaitingQueue 에 있는 토큰 정보가 유효한지 확인한다.
+     *
      * @param userId userId 정보
-     * @param token JWT 토큰 정보
+     * @param token  JWT 토큰 정보
      */
     public void validToken(Long userId, String token) {
         // 사용자 토큰이 active 상태인지 확인
@@ -116,7 +120,7 @@ public class JwtUtils {
             throw new CustomBadRequestException(ErrorCode.NOT_EXIST_IN_WAITING_QUEUE,
                     "발급받은 토큰을 가지고 대기열부터 입장해주세요.");
         }
-        if (!queue.getStatus().equals(WaitingQueueStatus.ACTIVE.getStatus())) {
+        if (queue.getStatus() != WaitingQueueStatus.ACTIVE) {
             throw new CustomBadRequestException(ErrorCode.TOKEN_IS_NOT_ACTIVE,
                     "토큰이 활성화 되지 않았습니다. 대기열을 확인해 주세요.");
         }

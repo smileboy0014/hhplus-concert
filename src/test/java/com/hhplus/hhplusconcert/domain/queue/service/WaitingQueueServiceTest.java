@@ -7,8 +7,8 @@ import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueEnterServiceRequest;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueResponse;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenResponse;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenServiceRequest;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
@@ -57,7 +57,7 @@ class WaitingQueueServiceTest {
         when(jwtUtils.createToken(request.userId())).thenReturn(token);
 
         // when
-        WaitingQueueTokenResponse result = waitingQueueService.issueToken(request);
+        WaitingQueueTokenInfo result = waitingQueueService.issueToken(request);
 
         // then
         assertThat(result.token()).isEqualTo(token);
@@ -67,7 +67,6 @@ class WaitingQueueServiceTest {
     @DisplayName("존재하지 않는 유저로 토큰을 발급 받으려고 하면 USER_IS_NOT_FOUND 예외를 반환한다.")
     void issueTokenNoUser() {
         // given
-        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
         WaitingQueueTokenServiceRequest request = WaitingQueueTokenServiceRequest
                 .builder()
                 .userId(1L)
@@ -96,11 +95,11 @@ class WaitingQueueServiceTest {
         User user = User.builder().userId(1L).build();
 
         when(userRepository.findUserByUserId(request.userId())).thenReturn(user);
-        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE.getStatus())).thenReturn(50L);
-        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.WAIT.getStatus())).thenReturn(2L);
+        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE)).thenReturn(50L);
+        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.WAIT)).thenReturn(2L);
 
         // when
-        WaitingQueueResponse result = waitingQueueService.enterQueue(request);
+        WaitingQueueInfo result = waitingQueueService.enterQueue(request);
 
         // then
         assertThat(result)
@@ -124,11 +123,11 @@ class WaitingQueueServiceTest {
 
 
         when(userRepository.findUserByUserId(request.userId())).thenReturn(user);
-        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE.getStatus())).thenReturn(45L);
-        when(waitingQueueRepository.save(request.toEntity(user, WaitingQueueStatus.ACTIVE.getStatus()))).thenReturn(waitingQueue);
+        when(waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE)).thenReturn(45L);
+        when(waitingQueueRepository.save(request.toEntity(user, WaitingQueueStatus.ACTIVE))).thenReturn(waitingQueue);
 
         // when
-        WaitingQueueResponse result = waitingQueueService.enterQueue(request);
+        WaitingQueueInfo result = waitingQueueService.enterQueue(request);
 
         // then
         assertThat(result)
@@ -150,13 +149,13 @@ class WaitingQueueServiceTest {
                 .builder()
                 .user(User.builder().build())
                 .requestTime(new Timestamp(System.currentTimeMillis()))
-                .status(WaitingQueueStatus.WAIT.getStatus()).build();
+                .status(WaitingQueueStatus.WAIT).build();
 
         when(waitingQueueRepository.findByUserIdAndToken(request.userId(), request.token())).thenReturn(waitingQueue);
-        when(waitingQueueRepository.countByRequestTimeBeforeAndStatusIs(waitingQueue.getRequestTime(), WaitingQueueStatus.WAIT.getStatus())).thenReturn(3L);
+        when(waitingQueueRepository.countByRequestTimeBeforeAndStatusIs(waitingQueue.getRequestTime(), WaitingQueueStatus.WAIT)).thenReturn(3L);
 
         // when
-        WaitingQueueResponse result = waitingQueueService.checkQueue(request);
+        WaitingQueueInfo result = waitingQueueService.checkQueue(request);
 
         // then
         assertThat(result)

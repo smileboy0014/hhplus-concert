@@ -66,7 +66,7 @@ class ConcertServiceTest {
         when(concertRepository.findAllConcert()).thenReturn(concerts);
 
         //when
-        List<ConcertResponse> result = concertService.getConcerts();
+        List<ConcertInfo> result = concertService.getConcerts();
 
         //then
         assertThat(result).hasSize(2);
@@ -81,7 +81,7 @@ class ConcertServiceTest {
         when(concertRepository.findAllConcert()).thenReturn(concerts);
 
         //when
-        List<ConcertResponse> result = concertService.getConcerts();
+        List<ConcertInfo> result = concertService.getConcerts();
 
         //then
         assertThat(result).isEmpty();
@@ -100,7 +100,7 @@ class ConcertServiceTest {
         when(concertRepository.findConcertByConcertId(concertId)).thenReturn(concerts);
 
         //when
-        ConcertResponse result = concertService.getConcert(concertId);
+        ConcertInfo result = concertService.getConcert(concertId);
 
         //then
         assertThat(result.name()).isEqualTo("싸이 흠뻑쇼");
@@ -135,10 +135,10 @@ class ConcertServiceTest {
                 .build());
 
         when(concertRepository.findAllConcertDateByConcertId(concertId)).thenReturn(concertDates);
-        when(concertRepository.existSeatByConcertDateAndStatus(concertId, SeatStatus.AVAILABLE.getStatus())).thenReturn(true);
+        when(concertRepository.existSeatByConcertDateAndStatus(concertId, SeatStatus.AVAILABLE)).thenReturn(true);
 
         //when
-        List<ConcertDateResponse> result = concertService.getConcertDates(concertId);
+        List<ConcertDateInfo> result = concertService.getConcertDates(concertId);
 
         //then
         assertThat(result).hasSize(1);
@@ -169,11 +169,11 @@ class ConcertServiceTest {
                 .seatNumber(1)
                 .build());
 
-        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE.getStatus()))
+        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
                 .thenReturn(concertDates);
 
         //when
-        List<ConcertSeatResponse> result = concertService.getAvailableSeats(concertDateId);
+        List<ConcertSeatInfo> result = concertService.getAvailableSeats(concertDateId);
 
         //then
         assertThat(result).hasSize(1);
@@ -185,7 +185,7 @@ class ConcertServiceTest {
         //given
         Long concertDateId = 1L;
 
-        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE.getStatus()))
+        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
                 .thenReturn(List.of());
 
         //when //then
@@ -212,8 +212,8 @@ class ConcertServiceTest {
                 .seatId(1L)
                 .seatNumber(request.seatNumber())
                 .price(BigDecimal.valueOf(100000))
-                .ticketClass(TicketClass.S.getDegree())
-                .status(SeatStatus.UNAVAILABLE.getStatus())
+                .ticketClass(TicketClass.S)
+                .status(SeatStatus.UNAVAILABLE)
                 .build();
 
         Concert concert = Concert.builder()
@@ -235,19 +235,19 @@ class ConcertServiceTest {
                 .concertName(concert.getName())
                 .concertDate(concertDate.getConcertDate())
                 .seatNumber(seat.getSeatNumber())
-                .status(ReservationStatus.PROGRESSING.getStatus())
+                .status(ReservationStatus.TEMPORARY_RESERVED)
                 .build();
 
         Payment payment = Payment.builder()
                 .paymentId(1L)
                 .price(seat.getPrice())
-                .status(PaymentStatus.WAIT.getStatus())
+                .status(PaymentStatus.WAIT)
                 .paidAt(null)
                 .reservation(reservation)
                 .build();
 
         when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.PROGRESSING.getStatus())).thenReturn(false);
+                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(false);
         when(concertRepository.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(),
                 request.concertId())).thenReturn(concertDate);
         when(concertRepository.findBySeatConcertDateIdAndSeatNumber(request.concertDateId(),
@@ -256,10 +256,10 @@ class ConcertServiceTest {
         when(paymentRepository.createPayment(any(Payment.class))).thenReturn(payment);
 
         // when
-        ReservationResponse result = concertService.reserveSeat(request);
+        ReservationInfo result = concertService.reserveSeat(request);
 
         // then
-        assertThat(result.status()).isEqualTo(ReservationStatus.PROGRESSING.getStatus());
+        assertThat(result.status()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
 
     }
 
@@ -275,7 +275,7 @@ class ConcertServiceTest {
                 .build();
 
         when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.PROGRESSING.getStatus())).thenReturn(true);
+                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(true);
 
         // when // then
         assertThatThrownBy(() -> concertService.reserveSeat(request))
@@ -297,7 +297,7 @@ class ConcertServiceTest {
 
         // when
         when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.PROGRESSING.getStatus())).thenReturn(false);
+                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(false);
         when(concertRepository.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(), request.concertId())).thenThrow(
                 new CustomNotFoundException(AVAILABLE_DATE_IS_NOT_FOUND,
                         AVAILABLE_DATE_IS_NOT_FOUND.getMsg()));
@@ -325,14 +325,14 @@ class ConcertServiceTest {
                         .concertName("싸이 흠뻑쇼")
                         .concertDate("2024-06-25")
                         .seatNumber(45)
-                        .status(ReservationStatus.COMPLETED.getStatus())
+                        .status(ReservationStatus.COMPLETED)
                         .build()
         );
 
         Payment payment = Payment
                 .builder()
                 .paymentId(1L)
-                .status(PaymentStatus.COMPLETE.getStatus())
+                .status(PaymentStatus.COMPLETE)
                 .paymentPrice(BigDecimal.valueOf(200000))
                 .build();
 
@@ -340,7 +340,7 @@ class ConcertServiceTest {
         when(paymentRepository.findByReservationId(1L)).thenReturn(payment);
 
         // when
-        List<ReservationResponse> result = concertService.getReservations(userId);
+        List<ReservationInfo> result = concertService.getReservations(userId);
 
         // then
         assertThat(result).hasSize(1);
@@ -355,7 +355,7 @@ class ConcertServiceTest {
         when(reservationRepository.findAllByUserId(userId)).thenReturn(List.of());
 
         // when
-        List<ReservationResponse> result = concertService.getReservations(userId);
+        List<ReservationInfo> result = concertService.getReservations(userId);
 
         // then
         assertThat(result).isEmpty();
@@ -374,13 +374,13 @@ class ConcertServiceTest {
                 .concertName("싸이 흠뻑쇼")
                 .concertDate("2024-06-25")
                 .seatNumber(45)
-                .status(ReservationStatus.COMPLETED.getStatus())
+                .status(ReservationStatus.COMPLETED)
                 .build();
 
         Payment payment = Payment
                 .builder()
                 .paymentId(1L)
-                .status(PaymentStatus.COMPLETE.getStatus())
+                .status(PaymentStatus.COMPLETE)
                 .paymentPrice(BigDecimal.valueOf(200000))
                 .build();
 
@@ -401,9 +401,9 @@ class ConcertServiceTest {
         concertService.cancelReservation(reservation.getReservationId());
 
         // then
-        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.CANCEL.getStatus());
-        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUND.getStatus());
-        assertThat(seat.getStatus()).isEqualTo(SeatStatus.AVAILABLE.getStatus());
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.CANCEL);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUND);
+        assertThat(seat.getStatus()).isEqualTo(SeatStatus.AVAILABLE);
 
     }
 
@@ -436,7 +436,7 @@ class ConcertServiceTest {
                 .concertName("싸이 흠뻑쇼")
                 .concertDate("2024-06-25")
                 .seatNumber(45)
-                .status(ReservationStatus.COMPLETED.getStatus())
+                .status(ReservationStatus.COMPLETED)
                 .build();
 
         when(reservationRepository.findByReservationId(reservation.getReservationId())).thenReturn(reservation);
@@ -465,13 +465,13 @@ class ConcertServiceTest {
                 .concertName("싸이 흠뻑쇼")
                 .concertDate("2024-06-25")
                 .seatNumber(45)
-                .status(ReservationStatus.PROGRESSING.getStatus())
+                .status(ReservationStatus.TEMPORARY_RESERVED)
                 .build();
 
         Payment payment = Payment
                 .builder()
                 .paymentId(1L)
-                .status(PaymentStatus.WAIT.getStatus())
+                .status(PaymentStatus.WAIT)
                 .paymentPrice(BigDecimal.valueOf(200000))
                 .build();
 

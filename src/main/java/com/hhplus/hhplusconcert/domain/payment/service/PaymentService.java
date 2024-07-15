@@ -1,11 +1,9 @@
 package com.hhplus.hhplusconcert.domain.payment.service;
 
-import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
-import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
 import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentResponse;
+import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
@@ -33,7 +31,7 @@ public class PaymentService {
      * @return PaymentResponse 결제 정보를 반환한다.
      */
     @Transactional
-    public PaymentResponse pay(PayServiceRequest request) {
+    public PaymentInfo pay(PayServiceRequest request) {
 
         // 1. 결제 상태 검증
         Payment payment = paymentRepository.findByReservationId(request.reservationId());
@@ -43,16 +41,16 @@ public class PaymentService {
         user.checkBalance(payment.getPrice());
         // 3. 잔액 차감
         user.useBalance(payment.getPrice());
-        // 4. 예약 상태 변경
-        payment.getReservation().changeStatus(ReservationStatus.COMPLETED.getStatus());
-        // 5. 결제 상태 변경
-        payment.changeStatus(PaymentStatus.COMPLETE.getStatus());
+        // 4. 예약 완료
+        payment.getReservation().complete();
+        // 5. 결제 완료
+        payment.complete();
         // 6. 결제 정보 수정
         payment.payPrice();
         // 6. 토큰 만료
-        WaitingQueue queue = waitingQueueRepository.findByUserIdAndStatusIs(request.userId(), WaitingQueueStatus.ACTIVE.getStatus());
-        queue.changeTokenStatus(WaitingQueueStatus.EXPIRED.getStatus());
+        WaitingQueue queue = waitingQueueRepository.findByUserIdAndStatusIs(request.userId(), WaitingQueueStatus.ACTIVE);
+        queue.expire();
 
-        return PaymentResponse.of(payment, user);
+        return PaymentInfo.of(payment, user);
     }
 }

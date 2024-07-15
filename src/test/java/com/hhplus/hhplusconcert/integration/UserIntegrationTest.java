@@ -4,8 +4,8 @@ import com.hhplus.hhplusconcert.application.user.UserFacade;
 import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserServiceRequest;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +52,7 @@ class UserIntegrationTest {
         List<User> users = userRepository.findAll();
 
         // when
-        UserResponse result = userFacade.getBalance(users.get(0).getUserId());
+        UserInfo result = userFacade.getBalance(users.get(0).getUserId());
 
         // then
         assertThat(result.balance()).isEqualByComparingTo(BigDecimal.valueOf(50000));
@@ -87,7 +87,7 @@ class UserIntegrationTest {
                 .build();
 
         // when
-        UserResponse result = userFacade.chargeBalance(request);
+        UserInfo result = userFacade.chargeBalance(request);
 
         // then
         assertThat(result.balance()).isEqualByComparingTo(remainAmount);

@@ -2,7 +2,7 @@ package com.hhplus.hhplusconcert.domain.user.service;
 
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserResponse;
+import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserServiceRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,9 +21,9 @@ public class UserService {
      * @param userId userId 정보
      * @return UserResponse 유저의 잔액 정보를 반환한다.
      */
-    public UserResponse getBalance(Long userId) {
+    public UserInfo getBalance(Long userId) {
 
-        return UserResponse.of(userRepository.findUserByUserId(userId));
+        return UserInfo.of(userRepository.findUserByUserId(userId));
     }
 
     /**
@@ -33,12 +33,12 @@ public class UserService {
      * @return UserResponse 유저의 잔액 정보를 반환한다.
      */
     @Transactional
-    public UserResponse chargeBalance(UserServiceRequest request) {
+    public UserInfo chargeBalance(UserServiceRequest request) {
         // 유저 정보를 조회
         User user = userRepository.findUserByUserId(request.userId());
         // 유저 포인트 충전
         user.chargeBalance(request.balance());
 
-        return UserResponse.of(user);
+        return UserInfo.of(user);
     }
 }

@@ -11,9 +11,9 @@ import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
 import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
 import com.hhplus.hhplusconcert.domain.concert.repository.PlaceRepository;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateResponse;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertResponse;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatResponse;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
+import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,12 +55,10 @@ class ConcertIntegrationTest {
 
         Concert concert = concertRepository.addConcert(Concert.builder()
                 .name("싸이 흠뻑쇼")
-                .place(place)
                 .build());
 
         Concert concert2 = concertRepository.addConcert(Concert.builder()
                 .name("GOD 콘서트")
-                .place(place)
                 .build());
 
 
@@ -88,32 +86,32 @@ class ConcertIntegrationTest {
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(120000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.C.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.C)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 30) { // B class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(150000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.B.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.B)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 40) { // A class
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(170000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.A.getDegree())
-                        .status(SeatStatus.UNAVAILABLE.getStatus())
+                        .ticketClass(TicketClass.A)
+                        .status(SeatStatus.UNAVAILABLE)
                         .build());
             } else {
                 seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(190000))
                         .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.S.getDegree())
-                        .status(SeatStatus.AVAILABLE.getStatus())
+                        .ticketClass(TicketClass.S)
+                        .status(SeatStatus.AVAILABLE)
                         .build());
             }
         }
@@ -131,7 +129,7 @@ class ConcertIntegrationTest {
     void getConcerts() {
 
         //given //when
-        List<ConcertResponse> result = concertFacade.getConcerts();
+        List<ConcertInfo> result = concertFacade.getConcerts();
 
         //then
         assertThat(result).hasSize(2);
@@ -144,7 +142,7 @@ class ConcertIntegrationTest {
         concertRepository.deleteAll();
 
         //when
-        List<ConcertResponse> result = concertFacade.getConcerts();
+        List<ConcertInfo> result = concertFacade.getConcerts();
 
         //then
         assertThat(result).isEmpty();
@@ -154,10 +152,10 @@ class ConcertIntegrationTest {
     @DisplayName("콘서트 상세 정보를 조회한다.")
     void getConcert() {
         //given
-        List<ConcertResponse> concerts = concertFacade.getConcerts();
+        List<ConcertInfo> concerts = concertFacade.getConcerts();
 
         //when
-        ConcertResponse concert = concertFacade.getConcert(concerts.get(0).concertId());
+        ConcertInfo concert = concertFacade.getConcert(concerts.get(0).concertId());
 
         //then
         assertThat(concert.name()).isEqualTo("싸이 흠뻑쇼");
@@ -180,10 +178,10 @@ class ConcertIntegrationTest {
     @DisplayName("예약 가능한 콘서트 날짜를 조회한다.")
     void getConcertDates() {
         //given
-        List<ConcertResponse> concerts = concertFacade.getConcerts();
+        List<ConcertInfo> concerts = concertFacade.getConcerts();
 
         //when
-        List<ConcertDateResponse> result = concertFacade.getConcertDates(concerts.get(0).concertId());
+        List<ConcertDateInfo> result = concertFacade.getConcertDates(concerts.get(0).concertId());
 
         //then
         assertThat(result.get(0).isAvailable()).isTrue();
@@ -217,11 +215,11 @@ class ConcertIntegrationTest {
     @DisplayName("예약 가능한 좌석을 조회한다.")
     void getAvailableSeats() {
         //given
-        List<ConcertResponse> concerts = concertFacade.getConcerts();
-        List<ConcertDateResponse> concertDates = concertFacade.getConcertDates(concerts.get(0).concertId());
+        List<ConcertInfo> concerts = concertFacade.getConcerts();
+        List<ConcertDateInfo> concertDates = concertFacade.getConcertDates(concerts.get(0).concertId());
 
         //when
-        List<ConcertSeatResponse> result = concertFacade.getAvailableSeats(concertDates.get(0).concertDateId());
+        List<ConcertSeatInfo> result = concertFacade.getAvailableSeats(concertDates.get(0).concertDateId());
 
         //then
         assertThat(result).hasSize(10);
@@ -233,7 +231,7 @@ class ConcertIntegrationTest {
         //given
         ConcertDate concertDates = concertRepository.findAllConcertDates()
                 .stream()
-                .filter(concertDate -> !concertRepository.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE.getStatus()))
+                .filter(concertDate -> !concertRepository.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE))
                 .findFirst()
                 .get();
 
