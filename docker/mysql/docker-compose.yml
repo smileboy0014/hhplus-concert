@@ -1,0 +1,19 @@
+version: '3.7'
+services:
+  mysql:
+    cap_add:
+      - SYS_NICE
+    container_name: concert-mysql
+    image: ubuntu/mysql:edge
+    restart: always
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --explicit_defaults_for_timestamp=1
+    ports:
+      - 13306:3306
+    environment:
+      - MYSQL_DATABASE=lecture
+      - MYSQL_USER=abcd
+      - MYSQL_PASSWORD=1234
+      - MYSQL_ROOT_PASSWORD=1234
+      - TZ=Asia/Seoul
+    volumes:
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d
