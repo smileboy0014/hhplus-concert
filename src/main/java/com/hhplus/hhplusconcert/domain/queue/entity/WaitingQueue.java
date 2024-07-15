@@ -24,18 +24,20 @@ public class WaitingQueue {
 
     private String token;
 
-    private String status; // 대기 / 활성 / 만료
+    @Enumerated(EnumType.STRING)
+    private WaitingQueueStatus status; // 대기 / 활성 / 만료
 
     private Timestamp requestTime; // 토큰 요청 시각
 
     private Timestamp activeTime; // 토큰 활성화 시각
 
-    public void changeTokenStatus(String status) {
-        this.status = status;
+    public void expire() {
+        status = WaitingQueueStatus.EXPIRED;
     }
 
-    public void activeToken() {
-        this.status = WaitingQueueStatus.ACTIVE.getStatus();
-        this.activeTime = new Timestamp(System.currentTimeMillis());
+    public void active() {
+        status = WaitingQueueStatus.ACTIVE;
+        activeTime = new Timestamp(System.currentTimeMillis());
     }
+
 }

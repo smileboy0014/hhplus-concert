@@ -1,6 +1,8 @@
 package com.hhplus.hhplusconcert.domain.concert.entity;
 
 import com.hhplus.hhplusconcert.domain.common.model.BaseTimeEntity;
+import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
+import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,12 +28,34 @@ public class Seat extends BaseTimeEntity {
 
     private BigDecimal price;
 
-    private String status; // available, unavailable
+    @Enumerated(EnumType.STRING)
+    private SeatStatus status; // available, unavailable
 
-    private String ticketClass; // S > A > B > C
+    @Enumerated(EnumType.STRING)
+    private TicketClass ticketClass; // S > A > B > C
 
-    public void changeStatus(String status) {
-        this.status = status;
+    public void occupy() {
+        this.status = SeatStatus.UNAVAILABLE;
+    }
+
+    public void cancel() {
+        this.status = SeatStatus.AVAILABLE;
+    }
+
+    public void classS() {
+        this.status = SeatStatus.AVAILABLE;
+    }
+
+    public void classA() {
+        this.status = SeatStatus.UNAVAILABLE;
+    }
+
+    public void classB() {
+        this.status = SeatStatus.AVAILABLE;
+    }
+
+    public void classC() {
+        this.status = SeatStatus.AVAILABLE;
     }
 
 }

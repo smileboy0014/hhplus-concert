@@ -19,9 +19,4 @@ public class Concert extends BaseTimeEntity {
 
     private String name; // 콘서트 이름
 
-    @ManyToOne
-    @JoinColumn(name = "place_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private Place place;
-
 }
-
