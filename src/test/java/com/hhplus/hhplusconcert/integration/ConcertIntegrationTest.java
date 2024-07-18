@@ -1,19 +1,20 @@
 package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
-import com.hhplus.hhplusconcert.common.utils.DateUtils;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.concert.entity.Concert;
 import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
 import com.hhplus.hhplusconcert.domain.concert.entity.Place;
 import com.hhplus.hhplusconcert.domain.concert.entity.Seat;
 import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
-import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
-import com.hhplus.hhplusconcert.domain.concert.repository.PlaceRepository;
+import com.hhplus.hhplusconcert.domain.concert.service.ConcertAppender;
+import com.hhplus.hhplusconcert.domain.concert.service.ConcertFinder;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
+import com.hhplus.hhplusconcert.domain.user.service.UserAppender;
+import com.hhplus.hhplusconcert.support.utils.DateUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,28 +37,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ConcertIntegrationTest {
 
     @Autowired
-    private ConcertRepository concertRepository;
-
-    @Autowired
-    private PlaceRepository placeRepository;
-
-    @Autowired
     private ConcertFacade concertFacade;
+    @Autowired
+    private ConcertAppender concertAppender;
+    @Autowired
+    private ConcertFinder concertFinder;
+    @Autowired
+    private UserAppender userAppender;
 
     @BeforeEach
     void setUp() {
         int seatsCnt = 50;
 
-        Place place = placeRepository.addPlace(Place.builder()
+        Place place = concertAppender.appendPlace(Place.builder()
                 .name("서울대공원")
                 .totalSeat(seatsCnt)
                 .build());
 
-        Concert concert = concertRepository.addConcert(Concert.builder()
+        Concert concert = concertAppender.appendConcert(Concert.builder()
                 .name("싸이 흠뻑쇼")
                 .build());
 
-        Concert concert2 = concertRepository.addConcert(Concert.builder()
+        Concert concert2 = concertAppender.appendConcert(Concert.builder()
                 .name("GOD 콘서트")
                 .build());
 
@@ -76,7 +77,7 @@ class ConcertIntegrationTest {
                 .placeInfo(place)
                 .build());
 
-        List<ConcertDate> addedConcertDates = concertRepository.addConcertDates(concertDates);
+        List<ConcertDate> addedConcertDates = concertAppender.appendConcertDates(concertDates);
 
         List<Seat> seats = new ArrayList<>();
 
@@ -115,13 +116,14 @@ class ConcertIntegrationTest {
                         .build());
             }
         }
-        concertRepository.addSeats(seats);
+        concertAppender.appendSeats(seats);
     }
 
     @AfterEach
     void tearDown() {
-        concertRepository.deleteAll();
-        placeRepository.deleteAll();
+        concertAppender.deleteAll();
+        userAppender.deleteAll();
+
     }
 
     @Test
@@ -139,7 +141,7 @@ class ConcertIntegrationTest {
     @DisplayName("콘서트 정보가 없으면 빈 배열을 반환한다.")
     void getConcertsWithEmptyList() {
         //given
-        concertRepository.deleteAll();
+        concertAppender.deleteAll();
 
         //when
         List<ConcertInfo> result = concertFacade.getConcerts();
@@ -169,7 +171,7 @@ class ConcertIntegrationTest {
 
         //when //then
         assertThatThrownBy(() -> concertFacade.getConcert(concertId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(CONCERT_IS_NOT_FOUND);
     }
@@ -191,11 +193,11 @@ class ConcertIntegrationTest {
     @DisplayName("예정된 콘서트 날짜가 없으면, AVAILABLE_DATE_NOT_FOUND 예외를 반환한다.")
     void getConcertDatesWithNoDates() {
         //given
-        List<Concert> concerts = concertRepository.findAllConcert();
+        List<Concert> concerts = concertFinder.findConcerts();
         Long concertId = 0L;
 
         for (Concert c : concerts) {
-            boolean result = concertRepository.existsConcertDateByConcertId(c.getConcertId());
+            boolean result = concertFinder.existsConcertDateByConcertId(c.getConcertId());
             if (!result) {
                 concertId = c.getConcertId();
                 break;
@@ -204,9 +206,8 @@ class ConcertIntegrationTest {
         Long finalConcertId = concertId;
 
         //when //then
-
         assertThatThrownBy(() -> concertFacade.getConcertDates(finalConcertId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(AVAILABLE_DATE_IS_NOT_FOUND);
     }
@@ -229,17 +230,16 @@ class ConcertIntegrationTest {
     @DisplayName("예약할 수 있는 좌석이 없다면, AVAILABLE_SEAT_NOT_FOUND 예외를 반환한다.")
     void getAvailableSeatsWithNoSeats() {
         //given
-        ConcertDate concertDates = concertRepository.findAllConcertDates()
+        ConcertDate concertDates = concertFinder.findConcertDates()
                 .stream()
-                .filter(concertDate -> !concertRepository.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE))
+                .filter(concertDate -> !concertFinder.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE))
                 .findFirst()
                 .get();
 
         //when //then
         assertThatThrownBy(() -> concertFacade.getAvailableSeats(concertDates.getConcertDateId()))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(SEAT_IS_NOT_FOUND);
-
     }
 }

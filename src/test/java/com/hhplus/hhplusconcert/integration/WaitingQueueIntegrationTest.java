@@ -1,17 +1,16 @@
 package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomBadRequestException;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
-import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.domain.queue.service.WaitingQueueAppender;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueEnterServiceRequest;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenServiceRequest;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.service.UserAppender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,10 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.NOT_EXIST_IN_WAITING_QUEUE;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_IS_NOT_FOUND;
+import static java.time.LocalDateTime.now;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -32,40 +32,38 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WaitingQueueIntegrationTest {
 
     @Autowired
-    private UserRepository userRepository;
-
+    private UserAppender userAppender;
     @Autowired
-    private WaitingQueueRepository waitingQueueRepository;
-
+    private WaitingQueueAppender waitingQueueAppender;
     @Autowired
     private WaitingQueueFacade waitingQueueFacade;
 
     @BeforeEach
     void setUp() {
         for (int i = 0; i < 49; i++) {
-            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-            User user = userRepository.addUser(User.builder().build());
+            LocalDateTime now = now();
+            User user = userAppender.appendUser(User.builder().build());
             WaitingQueue waitingQueue = WaitingQueue
                     .builder()
                     .user(user)
-                    .requestTime(timestamp)
+                    .requestTime(now)
                     .status(WaitingQueueStatus.ACTIVE).build();
 
-            waitingQueueRepository.save(waitingQueue);
+            waitingQueueAppender.appendWaitingQueue(waitingQueue);
         }
     }
 
     @AfterEach
     void tearDown() {
-        userRepository.deleteAll();
-        waitingQueueRepository.deleteAll();
+        userAppender.deleteAll();
+        waitingQueueAppender.deleteAll();
     }
 
     @Test
     @DisplayName("유저가 토큰 발급을 요청하면 토큰을 반환한다.")
     void issueToken() {
         //given
-        User user = userRepository.addUser(User
+        User user = userAppender.appendUser(User
                 .builder()
                 .build());
 
@@ -92,7 +90,7 @@ class WaitingQueueIntegrationTest {
 
         // when // then
         assertThatThrownBy(() -> waitingQueueFacade.issueToken(request))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(USER_IS_NOT_FOUND);
     }
@@ -101,17 +99,17 @@ class WaitingQueueIntegrationTest {
     @DisplayName("유저가 대기열에 들어가는 것을 요청하면 대기 정보를 반환한다.")
     void enterWaitingQueue() {
         // given
-        User user1 = userRepository.addUser(User.builder().build());
+        User user1 = userAppender.appendUser(User.builder().build());
 
         WaitingQueue waitingQueue = WaitingQueue
                 .builder()
                 .user(user1)
-                .requestTime(new Timestamp(System.currentTimeMillis()))
+                .requestTime(now())
                 .status(WaitingQueueStatus.ACTIVE).build();
 
-        waitingQueueRepository.save(waitingQueue);
+        waitingQueueAppender.appendWaitingQueue(waitingQueue);
 
-        User user2 = userRepository.addUser(User.builder().build());
+        User user2 = userAppender.appendUser(User.builder().build());
 
 
         WaitingQueueEnterServiceRequest request = WaitingQueueEnterServiceRequest
@@ -134,7 +132,7 @@ class WaitingQueueIntegrationTest {
     @DisplayName("유저가 대기열에 들어갈 때 대기자가 없다면 토큰이 활성화된 정보를 반환한다.")
     void enterWaitingQueueWithActiveToken() {
         // given
-        User user = userRepository.addUser(User.builder().build());
+        User user = userAppender.appendUser(User.builder().build());
 
         WaitingQueueEnterServiceRequest request = WaitingQueueEnterServiceRequest
                 .builder()
@@ -156,26 +154,26 @@ class WaitingQueueIntegrationTest {
     void checkWaitingQueue() {
         // given
         String tokne = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
-        User user1 = userRepository.addUser(User.builder().build());
+        User user1 = userAppender.appendUser(User.builder().build());
 
         WaitingQueue waitingQueue1 = WaitingQueue
                 .builder()
                 .user(user1)
-                .requestTime(new Timestamp(System.currentTimeMillis()))
+                .requestTime(now())
                 .status(WaitingQueueStatus.ACTIVE).build();
 
-        waitingQueueRepository.save(waitingQueue1);
+        waitingQueueAppender.appendWaitingQueue(waitingQueue1);
 
-        User user2 = userRepository.addUser(User.builder().build());
+        User user2 = userAppender.appendUser(User.builder().build());
 
         WaitingQueue waitingQueue2 = WaitingQueue
                 .builder()
                 .user(user2)
                 .token(tokne)
-                .requestTime(new Timestamp(System.currentTimeMillis()))
+                .requestTime(now())
                 .status(WaitingQueueStatus.WAIT).build();
 
-        waitingQueueRepository.save(waitingQueue2);
+        waitingQueueAppender.appendWaitingQueue(waitingQueue2);
 
         WaitingQueueEnterServiceRequest request = WaitingQueueEnterServiceRequest
                 .builder()
@@ -205,7 +203,7 @@ class WaitingQueueIntegrationTest {
 
         // when // then
         assertThatThrownBy(() -> waitingQueueFacade.checkQueue(request))
-                .isInstanceOf(CustomBadRequestException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(NOT_EXIST_IN_WAITING_QUEUE);
     }

@@ -1,19 +1,17 @@
 package com.hhplus.hhplusconcert.domain.concert.service;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomBadRequestException;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.concert.entity.*;
 import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
-import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
-import com.hhplus.hhplusconcert.domain.concert.repository.ReservationRepository;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.*;
 import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
-import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
+import com.hhplus.hhplusconcert.domain.payment.service.PaymentAppender;
+import com.hhplus.hhplusconcert.domain.payment.service.PaymentFinder;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.service.UserFinder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,22 +26,23 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 class ConcertServiceTest {
 
     @Mock
-    private ConcertRepository concertRepository;
-
+    private ConcertAppender concertAppender;
     @Mock
-    private ReservationRepository reservationRepository;
-
+    private ConcertFinder concertFinder;
     @Mock
-    private PaymentRepository paymentRepository;
-
+    private ConcertReader concertReader;
     @Mock
-    private UserRepository userRepository;
-
+    private PaymentAppender paymentAppender;
+    @Mock
+    private PaymentFinder paymentFinder;
+    @Mock
+    private UserFinder userFinder;
     @InjectMocks
     private ConcertService concertService;
 
@@ -56,14 +55,28 @@ class ConcertServiceTest {
     @DisplayName("콘서트 목록을 반환한다.")
     void getConcerts() {
         //given
-        List<Concert> concerts = List.of(Concert.builder()
-                        .name("싸이 흠뻑쇼")
-                        .build(),
-                Concert.builder()
-                        .name("god 콘서트")
-                        .build());
+        Concert concert1 = Concert.builder()
+                .name("싸이 흠뻑쇼")
+                .build();
 
-        when(concertRepository.findAllConcert()).thenReturn(concerts);
+        Concert concert2 = Concert.builder()
+                .name("god 콘서트")
+                .build();
+
+        List<Concert> concerts = List.of(concert1, concert2);
+
+        List<ConcertDate> concertDates = List.of(ConcertDate.builder()
+                .placeInfo(Place.builder()
+                        .name("서울대공원")
+                        .build())
+                .concertDate("2024-06-25")
+                .build());
+
+        ConcertInfo info1 = ConcertInfo.of(concert1, concertDates);
+        ConcertInfo info2 = ConcertInfo.of(concert2, concertDates);
+
+        when(concertFinder.findConcerts()).thenReturn(concerts);
+        when(concertReader.readConcerts(concerts)).thenReturn(List.of(info1, info2));
 
         //when
         List<ConcertInfo> result = concertService.getConcerts();
@@ -78,7 +91,7 @@ class ConcertServiceTest {
         //given
         List<Concert> concerts = List.of();
 
-        when(concertRepository.findAllConcert()).thenReturn(concerts);
+        when(concertFinder.findConcerts()).thenReturn(concerts);
 
         //when
         List<ConcertInfo> result = concertService.getConcerts();
@@ -92,12 +105,23 @@ class ConcertServiceTest {
     void getConcert() {
         //given
         Long concertId = 1L;
-        Concert concerts = Concert.builder()
+        Concert concert = Concert.builder()
                 .concertId(concertId)
                 .name("싸이 흠뻑쇼")
                 .build();
 
-        when(concertRepository.findConcertByConcertId(concertId)).thenReturn(concerts);
+        ConcertDate concertDate = ConcertDate.builder()
+                .placeInfo(Place.builder()
+                        .name("서울대공원")
+                        .build())
+                .concertDate("2024-06-25")
+                .build();
+
+        ConcertInfo info = ConcertInfo.of(concert, List.of(concertDate));
+
+        when(concertFinder.findConcertByConcertId(concertId)).thenReturn(concert);
+        when(concertFinder.findAllConcertDateByConcertId(concertId)).thenReturn(List.of(concertDate));
+        when(concertReader.readConcert(concert, List.of(concertDate))).thenReturn(info);
 
         //when
         ConcertInfo result = concertService.getConcert(concertId);
@@ -112,12 +136,12 @@ class ConcertServiceTest {
         //given
         Long concertId = 1L;
 
-        when(concertRepository.findConcertByConcertId(concertId))
-                .thenThrow(new CustomNotFoundException(CONCERT_IS_NOT_FOUND, CONCERT_IS_NOT_FOUND.getMsg()));
+        when(concertFinder.findConcertByConcertId(concertId))
+                .thenThrow(new CustomException(CONCERT_IS_NOT_FOUND, CONCERT_IS_NOT_FOUND.getMsg()));
 
         //when //then
         assertThatThrownBy(() -> concertService.getConcert(concertId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(CONCERT_IS_NOT_FOUND);
     }
@@ -127,15 +151,17 @@ class ConcertServiceTest {
     void getConcertDates() {
         //given
         Long concertId = 1L;
-        List<ConcertDate> concertDates = List.of(ConcertDate.builder()
+        ConcertDate concertDate = ConcertDate.builder()
                 .placeInfo(Place.builder()
                         .name("서울대공원")
                         .build())
                 .concertDate("2024-06-25")
-                .build());
+                .build();
 
-        when(concertRepository.findAllConcertDateByConcertId(concertId)).thenReturn(concertDates);
-        when(concertRepository.existSeatByConcertDateAndStatus(concertId, SeatStatus.AVAILABLE)).thenReturn(true);
+        ConcertDateInfo info = ConcertDateInfo.builder().build();
+
+        when(concertFinder.findAllConcertDateByConcertId(concertId)).thenReturn(List.of(concertDate));
+        when(concertReader.readConcertDates(List.of(concertDate))).thenReturn(List.of(info));
 
         //when
         List<ConcertDateInfo> result = concertService.getConcertDates(concertId);
@@ -150,11 +176,13 @@ class ConcertServiceTest {
         //given
         Long concertId = 1L;
 
-        when(concertRepository.findAllConcertDateByConcertId(concertId)).thenReturn(List.of());
+        when(concertFinder.findAllConcertDateByConcertId(concertId))
+                .thenThrow(new CustomException(AVAILABLE_DATE_IS_NOT_FOUND,
+                        AVAILABLE_DATE_IS_NOT_FOUND.getMsg()));
 
         //when //then
         assertThatThrownBy(() -> concertService.getConcertDates(concertId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(AVAILABLE_DATE_IS_NOT_FOUND);
     }
@@ -164,13 +192,17 @@ class ConcertServiceTest {
     void getAvailableSeats() {
         //given
         Long concertDateId = 1L;
-        List<Seat> concertDates = List.of(Seat.builder()
+        Seat seat = Seat.builder()
                 .seatId(1L)
                 .seatNumber(1)
-                .build());
+                .build();
+        List<Seat> seats = List.of(seat);
 
-        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
-                .thenReturn(concertDates);
+        ConcertSeatInfo info = ConcertSeatInfo.of(seat);
+
+        when(concertFinder.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
+                .thenReturn(seats);
+        when(concertReader.readSeats(seats)).thenReturn(List.of(info));
 
         //when
         List<ConcertSeatInfo> result = concertService.getAvailableSeats(concertDateId);
@@ -185,16 +217,14 @@ class ConcertServiceTest {
         //given
         Long concertDateId = 1L;
 
-        when(concertRepository.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
-                .thenReturn(List.of());
+        when(concertFinder.findAllSeatByConcertDateIdAndStatus(concertDateId, SeatStatus.AVAILABLE))
+                .thenThrow(new CustomException(SEAT_IS_NOT_FOUND, SEAT_IS_NOT_FOUND.getMsg()));
 
         //when //then
         assertThatThrownBy(() -> concertService.getAvailableSeats(concertDateId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(SEAT_IS_NOT_FOUND);
-
-
     }
 
     @Test
@@ -209,6 +239,14 @@ class ConcertServiceTest {
                 .build();
 
         Seat seat = Seat.builder()
+                .seatId(1L)
+                .seatNumber(request.seatNumber())
+                .price(BigDecimal.valueOf(100000))
+                .ticketClass(TicketClass.S)
+                .status(SeatStatus.AVAILABLE)
+                .build();
+
+        Seat afterSeat = Seat.builder()
                 .seatId(1L)
                 .seatNumber(request.seatNumber())
                 .price(BigDecimal.valueOf(100000))
@@ -246,21 +284,25 @@ class ConcertServiceTest {
                 .reservation(reservation)
                 .build();
 
-        when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(false);
-        when(concertRepository.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(),
-                request.concertId())).thenReturn(concertDate);
-        when(concertRepository.findBySeatConcertDateIdAndSeatNumber(request.concertDateId(),
-                request.seatNumber())).thenReturn(seat);
-        when(reservationRepository.reserve(any(Reservation.class))).thenReturn(reservation);
-        when(paymentRepository.createPayment(any(Payment.class))).thenReturn(payment);
+        ReservationInfo info = ReservationInfo.of(reservation,
+                ReservationConcertInfo.of(concertDate, seat),
+                ReservationPaymentInfo.of(payment));
+
+        when(concertFinder.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(), request.concertId()))
+                .thenReturn(concertDate);
+        when(concertFinder.findSeatByConcertDateIdAndSeatNumberWithLock(request.concertDateId(), request.seatNumber()))
+                .thenReturn(seat);
+        when(concertAppender.appendReservation(any(Reservation.class)))
+                .thenReturn(reservation);
+        when(paymentAppender.appendPayment(any(Payment.class)))
+                .thenReturn(payment);
+        when(concertReader.readReservation(reservation, concertDate, seat, payment)).thenReturn(info);
 
         // when
         ReservationInfo result = concertService.reserveSeat(request);
 
         // then
         assertThat(result.status()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
-
     }
 
     @Test
@@ -274,12 +316,15 @@ class ConcertServiceTest {
                 .seatNumber(10)
                 .build();
 
-        when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(true);
+        doThrow(new CustomException(RESERVATION_IS_ALREADY_EXISTED,
+                "이미 해당 좌석의 예약 내역이 존재합니다. [concertDateId: %d, seatNumber: %d]"
+                        .formatted(1L, 10)))
+                .when(concertFinder).existsReservationByConcertDateIdAndSeatNumber(request.concertDateId(),
+                        request.seatNumber());
 
         // when // then
         assertThatThrownBy(() -> concertService.reserveSeat(request))
-                .isInstanceOf(CustomBadRequestException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(RESERVATION_IS_ALREADY_EXISTED);
     }
@@ -295,16 +340,13 @@ class ConcertServiceTest {
                 .seatNumber(10)
                 .build();
 
-        // when
-        when(reservationRepository.existsByConcertDateIdAndSeatNumberAndStatusIs(request.concertDateId(),
-                request.seatNumber(), ReservationStatus.TEMPORARY_RESERVED)).thenReturn(false);
-        when(concertRepository.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(), request.concertId())).thenThrow(
-                new CustomNotFoundException(AVAILABLE_DATE_IS_NOT_FOUND,
-                        AVAILABLE_DATE_IS_NOT_FOUND.getMsg()));
+        when(concertFinder.findConcertDateByConcertDateIdAndConcertId(request.concertDateId(), request.concertId()))
+                .thenThrow(new CustomException(AVAILABLE_DATE_IS_NOT_FOUND,
+                        "예약 가능한 콘서트 날짜가 존재하지 않습니다."));
 
         // then
         assertThatThrownBy(() -> concertService.reserveSeat(request))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(AVAILABLE_DATE_IS_NOT_FOUND);
     }
@@ -315,7 +357,7 @@ class ConcertServiceTest {
     void getReservations() {
         // given
         Long userId = 1L;
-        List<Reservation> responses = List.of(
+        Reservation reservation =
                 Reservation
                         .builder()
                         .reservationId(1L)
@@ -326,18 +368,14 @@ class ConcertServiceTest {
                         .concertDate("2024-06-25")
                         .seatNumber(45)
                         .status(ReservationStatus.COMPLETED)
-                        .build()
-        );
+                        .build();
 
-        Payment payment = Payment
-                .builder()
-                .paymentId(1L)
-                .status(PaymentStatus.COMPLETE)
-                .paymentPrice(BigDecimal.valueOf(200000))
-                .build();
+        List<ReservationInfo> infos = List.of(ReservationInfo.builder()
+                .reservationId(reservation.getReservationId())
+                .build());
 
-        when(reservationRepository.findAllByUserId(userId)).thenReturn(responses);
-        when(paymentRepository.findByReservationId(1L)).thenReturn(payment);
+        when(concertFinder.findAllReservationByUserId(userId)).thenReturn(List.of(reservation));
+        when(concertReader.readReservations(List.of(reservation))).thenReturn(infos);
 
         // when
         List<ReservationInfo> result = concertService.getReservations(userId);
@@ -352,7 +390,7 @@ class ConcertServiceTest {
         // given
         Long userId = 1L;
 
-        when(reservationRepository.findAllByUserId(userId)).thenReturn(List.of());
+        when(concertFinder.findAllReservationByUserId(userId)).thenReturn(List.of());
 
         // when
         List<ReservationInfo> result = concertService.getReservations(userId);
@@ -392,10 +430,14 @@ class ConcertServiceTest {
 
         User user = User.builder().balance(BigDecimal.valueOf(300000)).build();
 
-        when(reservationRepository.findByReservationId(reservation.getReservationId())).thenReturn(reservation);
-        when(paymentRepository.findByReservationId(reservation.getReservationId())).thenReturn(payment);
-        when(concertRepository.findSeatBySeatId(reservation.getSeatId())).thenReturn(seat);
-        when(userRepository.findUserByUserId(reservation.getUserId())).thenReturn(user);
+        when(concertFinder.findReservationByReservationId(reservation.getReservationId()))
+                .thenReturn(reservation);
+        when(paymentFinder.findPaymentByReservationId(reservation.getReservationId()))
+                .thenReturn(payment);
+        when(userFinder.findUserByUserId(reservation.getUserId()))
+                .thenReturn(user);
+        when(concertFinder.findSeatBySeatId(reservation.getSeatId()))
+                .thenReturn(seat);
 
         // when
         concertService.cancelReservation(reservation.getReservationId());
@@ -412,13 +454,13 @@ class ConcertServiceTest {
     void cancelReservationWithNoReservation() {
         // given
         Long reservationId = 1L;
-        when(reservationRepository.findByReservationId(reservationId))
-                .thenThrow(new CustomNotFoundException(RESERVATION_IS_NOT_FOUND,
+        when(concertFinder.findReservationByReservationId(reservationId))
+                .thenThrow(new CustomException(RESERVATION_IS_NOT_FOUND,
                         RESERVATION_IS_NOT_FOUND.getMsg()));
 
         // when // then
         assertThatThrownBy(() -> concertService.cancelReservation(reservationId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(RESERVATION_IS_NOT_FOUND);
     }
@@ -439,15 +481,16 @@ class ConcertServiceTest {
                 .status(ReservationStatus.COMPLETED)
                 .build();
 
-        when(reservationRepository.findByReservationId(reservation.getReservationId())).thenReturn(reservation);
-        when(paymentRepository.findByReservationId(reservation.getReservationId())).thenThrow(
-                new CustomNotFoundException(PAYMENT_IS_NOT_FOUND,
-                        PAYMENT_IS_NOT_FOUND.getMsg()));
+        when(concertFinder.findReservationByReservationId(reservation.getReservationId()))
+                .thenReturn(reservation);
 
+        when(paymentFinder.findPaymentByReservationId(reservation.getReservationId())).thenThrow(
+                new CustomException(PAYMENT_IS_NOT_FOUND,
+                        PAYMENT_IS_NOT_FOUND.getMsg()));
 
         // when //then
         assertThatThrownBy(() -> concertService.cancelReservation(reservation.getReservationId()))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(PAYMENT_IS_NOT_FOUND);
     }
@@ -475,16 +518,16 @@ class ConcertServiceTest {
                 .paymentPrice(BigDecimal.valueOf(200000))
                 .build();
 
-        when(reservationRepository.findByReservationId(reservation.getReservationId())).thenReturn(reservation);
-        when(paymentRepository.findByReservationId(reservation.getReservationId())).thenReturn(payment);
-        when(concertRepository.findSeatBySeatId(reservation.getSeatId())).thenThrow(
-                new CustomNotFoundException(SEAT_IS_NOT_FOUND,
+        when(concertFinder.findReservationByReservationId(reservation.getReservationId()))
+                .thenReturn(reservation);
+        when(paymentFinder.findPaymentByReservationId(reservation.getReservationId())).thenReturn(payment);
+        when(concertFinder.findSeatBySeatId(reservation.getSeatId())).thenThrow(
+                new CustomException(SEAT_IS_NOT_FOUND,
                         SEAT_IS_NOT_FOUND.getMsg()));
-
 
         // when //then
         assertThatThrownBy(() -> concertService.cancelReservation(reservation.getReservationId()))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(SEAT_IS_NOT_FOUND);
     }
