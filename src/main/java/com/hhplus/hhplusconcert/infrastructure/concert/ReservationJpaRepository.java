@@ -13,5 +13,6 @@ public interface ReservationJpaRepository extends JpaRepository<Reservation, Lon
 
     List<Reservation> findAllByStatusIs(ReservationStatus status);
 
-    boolean existsByConcertDateIdAndSeatNumberAndStatusIs(Long concertDateId, int seatNumber, ReservationStatus status);
+    boolean existsByConcertDateIdAndSeatNumberAndStatusIsNot(Long concertDateId, int seatNumber, ReservationStatus status);
+
 }
