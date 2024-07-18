@@ -1,5 +1,6 @@
-package com.hhplus.hhplusconcert.config;
+package com.hhplus.hhplusconcert.support.config;
 
+import com.hhplus.hhplusconcert.support.interceptor.TokenInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -14,7 +15,7 @@ import java.util.List;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     // JWT 인터셉터
-    private final JwtTokenInterceptor jwtTokenInterceptor;
+    private final TokenInterceptor tokenInterceptor;
 
     // 인터셉터에 포함할 경로
     private final List<String> addEndPointList = List.of(
@@ -34,7 +35,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry
-                .addInterceptor(jwtTokenInterceptor) // 어떤 인터셉터를 태울지
+                .addInterceptor(tokenInterceptor) // 어떤 인터셉터를 태울지
                 .addPathPatterns(addEndPointList) // 인터셉터에 적용할 url
                 .excludePathPatterns(excludePointList); // 인터셉터에서 제외할 url
     }
