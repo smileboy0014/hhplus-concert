@@ -8,7 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import static com.hhplus.hhplusconcert.common.utils.StringUtils.getPeriod;
+import static com.hhplus.hhplusconcert.support.utils.StringUtils.getPeriod;
 
 @Builder
 public record ConcertInfo(Long concertId, String name,
