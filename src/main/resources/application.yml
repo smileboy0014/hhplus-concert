@@ -1,3 +1,17 @@
+spring:
+  profiles:
+    default: local
+    group:
+      #      local:
+      #        - file-default-logging
+      #        - file-error-logging
+      dev:
+        - file-default-logging
+        - file-error-logging
+        - slack-error-logging
+      prod:
+        - file-error-logging
+        - slack-error-logging
 server:
   servlet:
     context-path: /api
@@ -13,7 +27,7 @@ spring:
     name: hhplus-concert
   datasource:
     hikari:
-      jdbc-url: jdbc:mysql://localhost:13306/concert?useUnicode=yes&characterEncoding=UTF-8&rewriteBatchedStatements=true
+      jdbc-url: jdbc:mysql://localhost:53306/concert?useUnicode=yes&characterEncoding=UTF-8&rewriteBatchedStatements=true
       driver-class-name: com.mysql.cj.jdbc.Driver
       username: root
       password: 1234
@@ -26,17 +40,6 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
         default_batch_fetch_size: 500
-#logging:
-#  level:
-#    web: DEBUG
-#    org:
-#      hibernate:
-#        SQL: DEBUG
-#        type:
-#          descriptor:
-#            sql:
-#              BasicBinder: TRACE
-
 
 ---
 spring:

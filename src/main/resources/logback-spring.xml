@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true">
+    <springProperty scope="context" name="LOG_DIR" source="log.directory"/>
+    <timestamp key="BY_DATE" datePattern="yyyy-MM-dd"/>
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%green(%d{yyyy-MM-dd HH:mm:ss.SSS}) %magenta([%thread]) %clr(%5level) %cyan(%logger) - %yellow(%msg%n)"/> <!-- 해당 패턴 네이밍으로 현재 콘솔 로그가 기록됨 -->
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %5level %logger - %msg%n"/> <!-- 해당 패턴 네이밍으로 현재 파일 로그가 기록됨 -->
+    <!--  기본으로 콘솔 로그를 찍게 해줌  -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern> <!-- 해당 패턴 네이밍으로 현재 로그가 기록됨 -->
+        </layout>
+    </appender>
+
+    <include resource="appenders/file-default-logging.xml"/>
+    <include resource="appenders/file-error-logging.xml"/>
+    <include resource="appenders/slack-error-logging.xml"/>
+
+    <root level="INFO"> <!-- 전체 프로젝트의 로그 레벨을 설정 -->
+        <!-- 여기에 추가되는 Appender들은 root에 설정된 level 로깅을 각자 설정에 맞게 자동으로 수행해준다.   -->
+        <appender-ref ref="CONSOLE"/> <!-- 사용하고자 하는 appender 등록 -->
+    </root>
+</configuration>

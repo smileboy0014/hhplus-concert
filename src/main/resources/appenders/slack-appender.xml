@@ -1,0 +1,21 @@
+<included>
+    <appender name="SLACK" class="com.github.maricn.logback.SlackAppender">
+        <!-- 오류 로그만 필터링 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <!-- 슬랙 웹후크 URL -->
+        <webhookUri>https://hooks.slack.com/services/.....</webhookUri>
+        <!-- 메시지 발신자 이름 -->
+        <username>ERROR-ALARM</username>
+        <!-- 메시지 이모지 -->
+        <iconEmoji>:shake:</iconEmoji>
+        <!-- 로그 레벨에 컬러 코딩을 사용 -->
+        <colorCoding>true</colorCoding>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>[%d{yyyy-MM-dd HH:mm:ss}][%thread] %-5level %logger{36} - %msg</pattern>
+        </layout>
+    </appender>
+</included>
