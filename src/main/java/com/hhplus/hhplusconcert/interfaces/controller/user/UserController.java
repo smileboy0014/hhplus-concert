@@ -4,6 +4,7 @@ import com.hhplus.hhplusconcert.application.user.UserFacade;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceRequest;
+import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "유저 관련(잔액)", description = "Reservation-controller")
+@TraceLog
 @RequiredArgsConstructor
 @RequestMapping("/v1/users")
 public class UserController {
