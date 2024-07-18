@@ -1,4 +1,4 @@
-package com.hhplus.hhplusconcert.common.utils;
+package com.hhplus.hhplusconcert.support.utils;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

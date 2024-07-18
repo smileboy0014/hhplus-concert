@@ -1,4 +1,4 @@
-package com.hhplus.hhplusconcert.config;
+package com.hhplus.hhplusconcert.support.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

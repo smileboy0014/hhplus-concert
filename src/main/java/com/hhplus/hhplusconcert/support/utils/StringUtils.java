@@ -1,10 +1,10 @@
-package com.hhplus.hhplusconcert.common.utils;
+package com.hhplus.hhplusconcert.support.utils;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public  class StringUtils {
+public class StringUtils {
 
     /**
      * 기간 정보로 반환한다.
