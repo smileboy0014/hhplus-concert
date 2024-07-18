@@ -1,16 +1,15 @@
 package com.hhplus.hhplusconcert.domain.queue.service;
 
-import com.hhplus.hhplusconcert.common.utils.JwtUtils;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomBadRequestException;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
-import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueEnums;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
-import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
-import com.hhplus.hhplusconcert.domain.queue.service.dto.*;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueEnterServiceRequest;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
+import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenServiceRequest;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.service.UserFinder;
+import com.hhplus.hhplusconcert.support.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,17 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.List;
 
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.NOT_EXIST_IN_WAITING_QUEUE;
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_IS_NOT_FOUND;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class WaitingQueueService {
 
     private final JwtUtils jwtUtils;
-    private final WaitingQueueRepository waitingQueueRepository;
-    private final UserRepository userRepository;
+    private final WaitingQueueAppender waitingQueueAppender;
+    private final WaitingQueueReader waitingQueueReader;
+    private final WaitingQueueFinder waitingQueueFinder;
+    private final UserFinder userFinder;
 
     /**
      * 토큰 발급을 요청하면 토큰 정보를 반환한다.
@@ -37,12 +35,11 @@ public class WaitingQueueService {
      * @return WaitingQueueTokenResponse 토큰 정보를 반환한다.
      */
     public WaitingQueueTokenInfo issueToken(WaitingQueueTokenServiceRequest request) {
-        // 유저 정보 조회
-        boolean isExistUser = userRepository.existsByUserId(request.userId());
-        // 유저 검증
-        validUser(request, isExistUser);
+        // 유저 정보가 있는지 확인
+        userFinder.existsUserByUserId(request.userId());
+        String token = jwtUtils.createToken(request.userId());
 
-        return WaitingQueueTokenInfo.of(jwtUtils.createToken(request.userId()));
+        return waitingQueueReader.readWaitingQueueToken(token);
     }
 
     /**
@@ -58,32 +55,29 @@ public class WaitingQueueService {
 
         // 1. 기존 토큰 있으면 만료시킴
         expiredIfExist(request.userId());
-
-        // 2. 유저 정보 있나 확인
-        User user = userRepository.findUserByUserId(request.userId());
-
+        // 2. 유저 정보 조회
+        User user = userFinder.findUserByUserId(request.userId());
         // 3. 대기열 활성 유저 수 확인
-        long activeSize = waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE);
-
-        // 토큰 활성화 여부 체크
+        long activeSize = waitingQueueFinder.countWaitingQueueByStatusIs(WaitingQueueStatus.ACTIVE);
+        // 토큰 활성화 여부 확인
         boolean isActive = activeSize < WaitingQueueEnums.ACTIVE_USER_COUNT.getInfo();
 
         if (isActive) {
             // 3-1 유저 진입 활성화
-            waitingQueueRepository.save(request.toEntity(user, WaitingQueueStatus.ACTIVE));
+            waitingQueueAppender.appendWaitingQueue(request.toEntity(user, WaitingQueueStatus.ACTIVE));
         } else {
             // 3-2 유저 비활성, 대기열 정보 생성
-            waitingNumber = waitingQueueRepository.countByStatusIs(WaitingQueueStatus.WAIT);
+            waitingNumber = waitingQueueFinder.countWaitingQueueByStatusIs(WaitingQueueStatus.WAIT);
             // 대기 순번 결정
             waitingNumber++;
             // 대기 시간 결정
             expectedWaitTimeInSeconds = Duration.ofMinutes(waitingNumber).toSeconds();
             // 대기열에 저장
-            waitingQueueRepository.save(request.toEntity(user, WaitingQueueStatus.WAIT));
+            waitingQueueAppender.appendWaitingQueue(request.toEntity(user, WaitingQueueStatus.WAIT));
         }
 
-        return WaitingQueueInfo.of(isActive, request.userId(),
-                WaitingInfo.of(waitingNumber, expectedWaitTimeInSeconds));
+        return waitingQueueReader.readWaitingQueue(isActive, request.userId(),
+                waitingNumber, expectedWaitTimeInSeconds);
     }
 
     /**
@@ -96,37 +90,27 @@ public class WaitingQueueService {
         long waitingNumber;
         long expectedWaitTimeInSeconds;
 
-        // 1. 대기열 정보 있나 확인
-        WaitingQueue queue = waitingQueueRepository.findByUserIdAndToken(request.userId(), request.token());
+        // 1. 대기열 정보 확인
+        WaitingQueue queue = waitingQueueFinder.findWaitingQueueByUserIdAndToken(request.userId(), request.token());
 
-        validWaitingQueue(queue);
-
-        // 2. 활성 여부 확인
-        boolean isActive = (queue.getStatus() == WaitingQueueStatus.ACTIVE);
-
-        // 2-1 이미 활성화 된 토큰일 경우 예외 반환
-        if (isActive) {
-            throw new CustomBadRequestException(ErrorCode.ALREADY_TOKEN_IS_ACTIVE, "이미 활성화 된 토큰입니다.");
-        }
-
-        // 2-2 활성화 되지 않은 토큰이면 대기 정보 반환
-        waitingNumber = waitingQueueRepository.countByRequestTimeBeforeAndStatusIs(queue.getRequestTime(),
+        // 2. 활성화 되지 않은 토큰이면 대기 정보 반환
+        waitingNumber = waitingQueueFinder.countWaitingQueueByRequestTimeBeforeAndStatusIs(queue.getRequestTime(),
                 WaitingQueueStatus.WAIT);
-
         // 대기 순번 결정
         waitingNumber++;
-
+        // 대기 시간 결정
         expectedWaitTimeInSeconds = Duration.ofMinutes(waitingNumber).toSeconds();
 
-        return WaitingQueueInfo.of(isActive, request.userId(),
-                WaitingInfo.of(waitingNumber, expectedWaitTimeInSeconds));
+        return waitingQueueReader.readWaitingQueue(false, request.userId(),
+                waitingNumber, expectedWaitTimeInSeconds);
     }
 
     /**
      * 만료된 토큰 삭제를 요청한다.
      */
+    @Transactional
     public void deleteAllExpireToken() {
-        waitingQueueRepository.deleteAllExpireToken();
+        waitingQueueAppender.deleteAllExpireToken();
     }
 
     /**
@@ -136,36 +120,27 @@ public class WaitingQueueService {
      */
     @Transactional
     public void expiredIfExist(Long userId) {
-        WaitingQueue existingQueue = waitingQueueRepository.findByUserIdAndStatusIsNot(userId,
+        WaitingQueue existingQueue = waitingQueueFinder.findByUserIdAndStatusIsNot(userId,
                 WaitingQueueStatus.EXPIRED);
-        if (existingQueue != null) {
-            existingQueue.expire(); //토큰 만료
-        }
-        // 토큰 활성화
-        active();
+        if (existingQueue != null) existingQueue.expire(); //토큰 만료
+        active(); // 토큰 활성화
     }
 
     /**
-     * 만료시간이 된 토큰을 만료시키고, 대기열에 있는 토큰을 순차적으로 active 시킨다.
+     * 대기열에 있는 토큰을 순차적으로 active 시킨다.
      */
     @Transactional
     public void active() {
-
         // 1. 활성 유저 수 확인
-        long activeSize = waitingQueueRepository.countByStatusIs(WaitingQueueStatus.ACTIVE);
-
-        // 활성화 여부 체크
-        boolean isActive = activeSize < WaitingQueueEnums.ACTIVE_USER_COUNT.getInfo();
-
-        if (isActive) {
+        long activeSize = waitingQueueFinder.countWaitingQueueByStatusIs(WaitingQueueStatus.ACTIVE);
+        long availableActiveCnt = WaitingQueueEnums.ACTIVE_USER_COUNT.getInfo() - activeSize;
+        // 2. 활성화 가능 여부 확인
+        if (availableActiveCnt > 0) {
             // 2-1 대기열에 있는 유저 토큰 조회
-            List<WaitingQueue> waitingQueues = waitingQueueRepository.findAllByStatusIsOrderByRequestTime(
+            List<WaitingQueue> waitingQueues = waitingQueueFinder.findAllWaitingQueueByStatusIsOrderByRequestTime(
                     WaitingQueueStatus.WAIT);
-
-            long availableActiveCnt = WaitingQueueEnums.ACTIVE_USER_COUNT.getInfo() - activeSize;
             int initIdx = 0;
-
-            // 2-1 활성화 할 수 있는만큼 활성화 진행
+            // 2-2 활성화 할 수 있는만큼 활성화 진행
             for (WaitingQueue waitingQueue : waitingQueues) {
                 if (initIdx++ == availableActiveCnt) break;
                 waitingQueue.active();
@@ -173,16 +148,12 @@ public class WaitingQueueService {
         }
     }
 
-    private void validUser(WaitingQueueTokenServiceRequest request, boolean isExistUser) {
-        if (!isExistUser) throw new CustomNotFoundException(USER_IS_NOT_FOUND,
-                "유저 정보가 존재하지 않습니다. [userId : %d]".formatted(request.userId()));
+    /**
+     * 시간이 만료된 active token 을 expired 시킨다.
+     */
+    @Transactional
+    public void expire() {
+        List<WaitingQueue> tokens = waitingQueueFinder.getActiveOver10min();
+        tokens.forEach(WaitingQueue::expireOver10min);
     }
-
-    private void validWaitingQueue(WaitingQueue queue) {
-        if (queue == null || queue.getStatus().equals(WaitingQueueStatus.EXPIRED)) {
-            throw new CustomBadRequestException(NOT_EXIST_IN_WAITING_QUEUE,
-                    "대기열에 토큰이 존재하지 않습니다. 다시 대기열에 진입해주세요.");
-        }
-    }
-
 }
