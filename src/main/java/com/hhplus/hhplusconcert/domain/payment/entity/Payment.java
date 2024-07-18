@@ -1,7 +1,7 @@
 package com.hhplus.hhplusconcert.domain.payment.entity;
 
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomBadRequestException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.common.model.BaseTimeEntity;
 import com.hhplus.hhplusconcert.domain.concert.entity.Reservation;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
@@ -11,8 +11,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.ALREADY_CANCEL_OR_REFUND;
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.NOT_AVAILABLE_STATE_PAYMENT;
+import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 
 @Entity
 @Getter
@@ -40,6 +39,10 @@ public class Payment extends BaseTimeEntity {
     private LocalDateTime paidAt;
 
     public void complete() {
+        if (status == PaymentStatus.COMPLETE) {
+            throw new CustomException(ALREADY_PAYMENT_COMPLETE,
+                    "이미 결제되었습니다.");
+        }
         status = PaymentStatus.COMPLETE;
     }
 
@@ -49,13 +52,13 @@ public class Payment extends BaseTimeEntity {
         } else if (status == PaymentStatus.COMPLETE) {
             status = PaymentStatus.REFUND;
         } else {
-            throw new CustomBadRequestException(ALREADY_CANCEL_OR_REFUND,
+            throw new CustomException(ALREADY_CANCEL_OR_REFUND,
                     "이미 취소됐거나 환불된 결제 정보입니다.");
         }
     }
 
     public void checkStatus() {
-        if (status != PaymentStatus.WAIT) throw new CustomBadRequestException(
+        if (status != PaymentStatus.WAIT) throw new CustomException(
                 NOT_AVAILABLE_STATE_PAYMENT, "결제 가능한 상태가 아닙니다.");
     }
 
