@@ -1,11 +1,10 @@
 package com.hhplus.hhplusconcert.infrastructure.payment;
 
-import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface PaymentJpaRepository extends JpaRepository<Payment, Long> {
+public interface PaymentJpaRepository extends JpaRepository<PaymentEntity, Long> {
+    Optional<PaymentEntity> findByConcertReservation_reservationId(Long reservationId);
 
-    Optional<Payment> findByReservation_reservationId(Long reservationId);
 }

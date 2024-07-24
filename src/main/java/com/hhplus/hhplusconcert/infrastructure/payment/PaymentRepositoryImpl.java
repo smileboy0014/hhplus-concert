@@ -1,7 +1,7 @@
 package com.hhplus.hhplusconcert.infrastructure.payment;
 
-import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
-import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
+import com.hhplus.hhplusconcert.domain.payment.Payment;
+import com.hhplus.hhplusconcert.domain.payment.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -13,20 +13,35 @@ public class PaymentRepositoryImpl implements PaymentRepository {
 
     private final PaymentJpaRepository paymentJpaRepository;
 
-
     @Override
     public Payment createPayment(Payment payment) {
-        return paymentJpaRepository.save(payment);
+        return null;
     }
 
     @Override
     public Optional<Payment> findByReservationId(Long reservationId) {
-        return paymentJpaRepository.findByReservation_reservationId(reservationId);
+        return Optional.empty();
     }
 
     @Override
     public void deleteAll() {
         paymentJpaRepository.deleteAllInBatch();
+    }
+
+    @Override
+    public Optional<Payment> getPayment(Long reservationId) {
+        Optional<PaymentEntity> paymentEntity = paymentJpaRepository.findByConcertReservation_reservationId(reservationId);
+        if (paymentEntity.isPresent()) {
+            return paymentEntity.map(PaymentEntity::toDomain);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Payment> savePayment(Payment payment) {
+        PaymentEntity paymentEntity = paymentJpaRepository.save(PaymentEntity.toEntity(payment));
+
+        return Optional.of(paymentEntity.toDomain());
     }
 
 }

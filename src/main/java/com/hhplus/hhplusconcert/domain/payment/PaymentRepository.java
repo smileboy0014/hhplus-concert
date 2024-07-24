@@ -1,6 +1,5 @@
-package com.hhplus.hhplusconcert.domain.payment.repository;
+package com.hhplus.hhplusconcert.domain.payment;
 
-import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -14,4 +13,8 @@ public interface PaymentRepository {
 
     void deleteAll();
 
+    Optional<Payment> getPayment(Long reservationId);
+
+
+    Optional<Payment> savePayment(Payment payment);
 }
