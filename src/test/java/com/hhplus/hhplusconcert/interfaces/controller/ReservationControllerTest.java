@@ -1,10 +1,10 @@
-package com.hhplus.hhplusconcert.interfaces.controller.reservation;
+package com.hhplus.hhplusconcert.interfaces.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationReserveServiceRequest;
-import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationReserveRequest;
+import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
+import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
+import com.hhplus.hhplusconcert.interfaces.controller.reservation.ReservationController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static com.hhplus.hhplusconcert.interfaces.controller.reservation.enums.ReservationEnums.SUCCESS_CANCEL_RESERVATION;
+import static com.hhplus.hhplusconcert.interfaces.controller.reservation.ReservationController.SUCCESS_CANCEL_RESERVATION;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -38,30 +38,21 @@ class ReservationControllerTest {
     @DisplayName("좌석 예약을 요청한다.")
     void reserveSeat() throws Exception {
         // given
-        ReservationReserveRequest request = ReservationReserveRequest
-                .builder()
-                .concertId(1L)
-                .concertDateId(1L)
-                .seatNumber(11)
-                .userId(1L)
-                .build();
+        ReservationCommand.Create command = new ReservationCommand.Create(
+                1L,
+                1L,
+                35,
+                1L);
 
-        ReservationReserveServiceRequest serviceRequest = ReservationReserveServiceRequest
-                .builder()
-                .concertId(1L)
-                .concertDateId(1L)
-                .seatNumber(11)
-                .userId(1L)
-                .build();
-
-        ReservationInfo response = ReservationInfo.builder()
+        ConcertReservationInfo reservation = ConcertReservationInfo.builder()
                 .reservationId(1L).build();
 
-        when(reservationFacade.reserveSeat(serviceRequest)).thenReturn(response);
+
+        when(reservationFacade.reserveSeat(command)).thenReturn(reservation);
 
         // when // then
         mockMvc.perform(post("/v1/reservations")
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(command))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -76,8 +67,9 @@ class ReservationControllerTest {
     void getReservations() throws Exception {
         // given
         Long userId = 1L;
+        List<ConcertReservationInfo> reservations = List.of(ConcertReservationInfo.builder().build());
 
-        when(reservationFacade.getReservations(userId)).thenReturn(List.of(ReservationInfo.builder().build()));
+        when(reservationFacade.getMyReservations(userId)).thenReturn(reservations);
 
         // when // then
         mockMvc.perform(get("/v1/reservations/%d".formatted(userId)))
@@ -100,7 +92,7 @@ class ReservationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.msg").value("OK"))
-                .andExpect(jsonPath("$.data").value(SUCCESS_CANCEL_RESERVATION.getMessage()));
+                .andExpect(jsonPath("$.data").value(SUCCESS_CANCEL_RESERVATION));
 
     }
 

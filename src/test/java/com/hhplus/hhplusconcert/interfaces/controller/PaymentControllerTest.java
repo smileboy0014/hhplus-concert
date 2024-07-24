@@ -1,10 +1,10 @@
-package com.hhplus.hhplusconcert.interfaces.controller.payment;
+package com.hhplus.hhplusconcert.interfaces.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.payment.PaymentFacade;
-import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
-import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
-import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PayRequest;
+import com.hhplus.hhplusconcert.domain.payment.Payment;
+import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
+import com.hhplus.hhplusconcert.interfaces.controller.payment.PaymentController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,23 +34,15 @@ class PaymentControllerTest {
     @DisplayName("결제를 요청한다.")
     void pay() throws Exception {
         // given
-        PayRequest request = PayRequest
-                .builder()
-                .reservationId(1L)
-                .userId(1L)
-                .build();
+        PaymentCommand.Create command = new PaymentCommand.Create(1L, 2L);
 
-        PaymentInfo response = PaymentInfo
-                .builder()
-                .paymentId(1L)
-                .status(PaymentStatus.COMPLETE)
-                .build();
+        Payment payment = Payment.builder().build();
 
-        when(paymentFacade.pay(request.toServiceRequest())).thenReturn(response);
+        when(paymentFacade.pay(command)).thenReturn(payment);
 
         // when // then
         mockMvc.perform(post("/v1/payments/pay")
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(command))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(jsonPath("$.status").value("OK"))

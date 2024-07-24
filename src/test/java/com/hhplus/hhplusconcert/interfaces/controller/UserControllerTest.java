@@ -2,8 +2,8 @@ package com.hhplus.hhplusconcert.interfaces.controller.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hhplus.hhplusconcert.application.user.UserFacade;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
-import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceRequest;
+import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.command.UserCommand;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +37,11 @@ class UserControllerTest {
     void getBalance() throws Exception {
         // given
         Long userId = 1L;
-        UserInfo response = UserInfo.builder().build();
+        UserCommand.Create command = new UserCommand.Create(1L, BigDecimal.valueOf(3000));
 
-        when(userFacade.getBalance(userId)).thenReturn(response);
+        User user = User.builder().build();
+
+        when(userFacade.getBalance(userId)).thenReturn(user);
 
         // when // then
         mockMvc.perform(get("/v1/users/%d/balance".formatted(userId)))
@@ -55,17 +57,15 @@ class UserControllerTest {
         // given
         Long userId = 1L;
         BigDecimal amount = BigDecimal.valueOf(20000);
-        UserBalanceRequest request = UserBalanceRequest.builder()
-                .balance(amount)
-                .build();
+        UserCommand.Create command = new UserCommand.Create(1L, amount);
 
-        UserInfo response = UserInfo.builder().balance(amount).build();
+        User user = User.builder().userId(1L).balance(amount).build();
 
-        when(userFacade.chargeBalance(request.toServiceRequest(userId))).thenReturn(response);
+        when(userFacade.chargeBalance(command)).thenReturn(user);
 
         // when // then
         mockMvc.perform(patch("/v1/users/%d/charge".formatted(userId))
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(command))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(jsonPath("$.status").value("OK"))
