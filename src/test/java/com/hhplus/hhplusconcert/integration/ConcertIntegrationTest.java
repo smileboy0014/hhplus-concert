@@ -1,245 +1,160 @@
 package com.hhplus.hhplusconcert.integration;
 
-import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
-import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
-import com.hhplus.hhplusconcert.domain.concert.entity.Concert;
-import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
-import com.hhplus.hhplusconcert.domain.concert.entity.Place;
-import com.hhplus.hhplusconcert.domain.concert.entity.Seat;
-import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
-import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
-import com.hhplus.hhplusconcert.domain.concert.service.ConcertAppender;
-import com.hhplus.hhplusconcert.domain.concert.service.ConcertFinder;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
-import com.hhplus.hhplusconcert.domain.user.service.UserAppender;
+import com.hhplus.hhplusconcert.domain.concert.ConcertRepository;
+import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDateDto;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDto;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertSeatDto;
 import com.hhplus.hhplusconcert.support.utils.DateUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class ConcertIntegrationTest {
+class ConcertIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private ConcertFacade concertFacade;
-    @Autowired
-    private ConcertAppender concertAppender;
-    @Autowired
-    private ConcertFinder concertFinder;
-    @Autowired
-    private UserAppender userAppender;
+    private ConcertRepository concertRepository;
 
-    @BeforeEach
-    void setUp() {
-        int seatsCnt = 50;
-
-        Place place = concertAppender.appendPlace(Place.builder()
-                .name("서울대공원")
-                .totalSeat(seatsCnt)
-                .build());
-
-        Concert concert = concertAppender.appendConcert(Concert.builder()
-                .name("싸이 흠뻑쇼")
-                .build());
-
-        Concert concert2 = concertAppender.appendConcert(Concert.builder()
-                .name("GOD 콘서트")
-                .build());
-
-
-        List<ConcertDate> concertDates = new ArrayList<>();
-
-        concertDates.add(ConcertDate.builder()
-                .concertInfo(concert)
-                .concertDate(DateUtils.getLocalDateTimeToString(LocalDateTime.of(2024, 6, 25, 13, 0)))
-                .placeInfo(place)
-                .build());
-
-        concertDates.add(ConcertDate.builder()
-                .concertInfo(concert)
-                .concertDate(DateUtils.getLocalDateTimeToString(LocalDateTime.of(2024, 6, 26, 13, 0)))
-                .placeInfo(place)
-                .build());
-
-        List<ConcertDate> addedConcertDates = concertAppender.appendConcertDates(concertDates);
-
-        List<Seat> seats = new ArrayList<>();
-
-        for (int i = 1; i <= seatsCnt; i++) {
-            if (i <= 20) { // C class
-                seats.add(Seat.builder()
-                        .seatNumber(i)
-                        .price(BigDecimal.valueOf(120000))
-                        .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.C)
-                        .status(SeatStatus.UNAVAILABLE)
-                        .build());
-            } else if (i <= 30) { // B class
-                seats.add(Seat.builder()
-                        .seatNumber(i)
-                        .price(BigDecimal.valueOf(150000))
-                        .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.B)
-                        .status(SeatStatus.UNAVAILABLE)
-                        .build());
-            } else if (i <= 40) { // A class
-                seats.add(Seat.builder()
-                        .seatNumber(i)
-                        .price(BigDecimal.valueOf(170000))
-                        .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.A)
-                        .status(SeatStatus.UNAVAILABLE)
-                        .build());
-            } else {
-                seats.add(Seat.builder()
-                        .seatNumber(i)
-                        .price(BigDecimal.valueOf(190000))
-                        .concertDateInfo(addedConcertDates.get(0))
-                        .ticketClass(TicketClass.S)
-                        .status(SeatStatus.AVAILABLE)
-                        .build());
-            }
-        }
-        concertAppender.appendSeats(seats);
-    }
-
-    @AfterEach
-    void tearDown() {
-        concertAppender.deleteAll();
-        userAppender.deleteAll();
-
-    }
+    private static final String PATH = "/api/v1/concerts";
 
     @Test
     @DisplayName("콘서트 목록을 조회한다.")
     void getConcerts() {
-
         //given //when
-        List<ConcertInfo> result = concertFacade.getConcerts();
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH);
 
         //then
-        assertThat(result).hasSize(2);
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getList("data").size()).isEqualTo(2);
+        });
     }
 
     @Test
     @DisplayName("콘서트 정보가 없으면 빈 배열을 반환한다.")
     void getConcertsWithEmptyList() {
         //given
-        concertAppender.deleteAll();
+        concertRepository.deleteAll();
 
         //when
-        List<ConcertInfo> result = concertFacade.getConcerts();
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH);
 
         //then
-        assertThat(result).isEmpty();
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getList("data")).isEqualTo(new ArrayList<>());
+        });
     }
 
     @Test
     @DisplayName("콘서트 상세 정보를 조회한다.")
     void getConcert() {
         //given
-        List<ConcertInfo> concerts = concertFacade.getConcerts();
+        long concertId = 1L;
 
         //when
-        ConcertInfo concert = concertFacade.getConcert(concerts.get(0).concertId());
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/" + concertId);
 
         //then
-        assertThat(concert.name()).isEqualTo("싸이 흠뻑쇼");
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getObject("data", ConcertDto.Response.class).name()).isEqualTo("싸이 흠뻑쇼");
+        });
     }
 
     @Test
-    @DisplayName("등록되지 않는 콘서트 정보를 조회하면 CONCERT_NOT_FOUND 예외를 반환한다.")
+    @DisplayName("등록되지 않는 콘서트 정보를 조회하면 msg 에 CONCERT_IS_NOT_FOUND 를 반환한다.")
     void getConcertWithNoConcert() {
         //given
-        Long concertId = 10L;
+        long concertId = 1000L;
 
-        //when //then
-        assertThatThrownBy(() -> concertFacade.getConcert(concertId))
-                .isInstanceOf(CustomException.class)
-                .extracting("errorCode")
-                .isEqualTo(CONCERT_IS_NOT_FOUND);
+        //when
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/" + concertId);
+
+        //then
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getBoolean("success")).isFalse();
+            softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
+                    .contains(CONCERT_IS_NOT_FOUND.name());
+        });
     }
 
     @Test
     @DisplayName("예약 가능한 콘서트 날짜를 조회한다.")
     void getConcertDates() {
         //given
-        List<ConcertInfo> concerts = concertFacade.getConcerts();
+        long concertId = 1L;
 
         //when
-        List<ConcertDateInfo> result = concertFacade.getConcertDates(concerts.get(0).concertId());
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/" + concertId + "/dates");
 
         //then
-        assertThat(result.get(0).isAvailable()).isTrue();
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getList("data", ConcertDateDto.Response.class).get(0).concertDate())
+                    .isEqualTo(DateUtils.getLocalDateTimeToString(LocalDateTime.now().plusMonths(3)));
+        });
     }
 
     @Test
-    @DisplayName("예정된 콘서트 날짜가 없으면, AVAILABLE_DATE_NOT_FOUND 예외를 반환한다.")
+    @DisplayName("예정된 콘서트 날짜가 없으면, msg 에 CONCERT_DATE_IS_NOT_FOUND 를 반환한다.")
     void getConcertDatesWithNoDates() {
         //given
-        List<Concert> concerts = concertFinder.findConcerts();
-        Long concertId = 0L;
+        long concertId = 10000L;
 
-        for (Concert c : concerts) {
-            boolean result = concertFinder.existsConcertDateByConcertId(c.getConcertId());
-            if (!result) {
-                concertId = c.getConcertId();
-                break;
-            }
-        }
-        Long finalConcertId = concertId;
+        //when
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/" + concertId + "/dates");
 
-        //when //then
-        assertThatThrownBy(() -> concertFacade.getConcertDates(finalConcertId))
-                .isInstanceOf(CustomException.class)
-                .extracting("errorCode")
-                .isEqualTo(AVAILABLE_DATE_IS_NOT_FOUND);
+        //then
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getBoolean("success")).isFalse();
+            softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
+                    .contains(CONCERT_DATE_IS_NOT_FOUND.name());
+        });
     }
 
     @Test
     @DisplayName("예약 가능한 좌석을 조회한다.")
     void getAvailableSeats() {
         //given
-        List<ConcertInfo> concerts = concertFacade.getConcerts();
-        List<ConcertDateInfo> concertDates = concertFacade.getConcertDates(concerts.get(0).concertId());
+        long concertDateId = 1L;
 
         //when
-        List<ConcertSeatInfo> result = concertFacade.getAvailableSeats(concertDates.get(0).concertDateId());
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/dates/" + concertDateId + "/seats");
 
         //then
-        assertThat(result).hasSize(10);
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getList("data", ConcertSeatDto.Response.class).size()).isEqualTo(18);
+        });
     }
 
     @Test
-    @DisplayName("예약할 수 있는 좌석이 없다면, AVAILABLE_SEAT_NOT_FOUND 예외를 반환한다.")
+    @DisplayName("예약할 수 있는 좌석이 없다면, msg 에 SEAT_IS_NOT_FOUND 를 반환한다.")
     void getAvailableSeatsWithNoSeats() {
         //given
-        ConcertDate concertDates = concertFinder.findConcertDates()
-                .stream()
-                .filter(concertDate -> !concertFinder.existSeatByConcertDateAndStatus(concertDate.getConcertDateId(), SeatStatus.AVAILABLE))
-                .findFirst()
-                .get();
+        long concertDateId = 100000L;
 
-        //when //then
-        assertThatThrownBy(() -> concertFacade.getAvailableSeats(concertDates.getConcertDateId()))
-                .isInstanceOf(CustomException.class)
-                .extracting("errorCode")
-                .isEqualTo(SEAT_IS_NOT_FOUND);
+        //when
+        ExtractableResponse<Response> result = get(LOCAL_HOST + port + PATH + "/dates/" + concertDateId + "/seats");
+
+        //then
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getBoolean("success")).isFalse();
+            softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
+                    .contains(SEAT_IS_NOT_FOUND.name());
+        });
     }
+
 }
