@@ -1,17 +1,21 @@
 package com.hhplus.hhplusconcert.infrastructure.concert;
 
-import com.hhplus.hhplusconcert.domain.concert.entity.*;
-import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
-import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
-import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
+import com.hhplus.hhplusconcert.domain.concert.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus;
+import static com.hhplus.hhplusconcert.domain.concert.Seat.SeatStatus.AVAILABLE;
+import static com.hhplus.hhplusconcert.support.utils.DateUtils.getLocalDateTimeToString;
+import static java.time.LocalDateTime.now;
+
 @Repository
 @RequiredArgsConstructor
+@Transactional
 public class ConcertRepositoryImpl implements ConcertRepository {
 
     private final ConcertJpaRepository concertJpaRepository;
@@ -21,111 +25,152 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     private final ReservationJpaRepository reservationJpaRepository;
 
     @Override
-    public Place addPlace(Place place) {
-        return placeJpaRepository.save(place);
+    public List<Concert> getConcerts() {
+        return concertJpaRepository.findAll()
+                .stream()
+                .map(ConcertEntity::toDomain)
+                .toList();
     }
 
     @Override
-    public List<Concert> findAllConcert() {
-        return concertJpaRepository.findAll();
-    }
-
-    @Override
-    public Optional<Concert> findConcertByConcertId(Long concertId) {
-        return concertJpaRepository.findById(concertId);
-    }
-
-    @Override
-    public Concert addConcert(Concert concert) {
-        return concertJpaRepository.save(concert);
-    }
-
-    @Override
-    public List<ConcertDate> addConcertDates(List<ConcertDate> concertDates) {
-        return concertDateJpaRepository.saveAll(concertDates);
-    }
-
-    @Override
-    public List<Seat> addSeats(List<Seat> seat) {
-        return seatJpaRepository.saveAll(seat);
-    }
-
-    @Override
-    public List<ConcertDate> findAllConcertDateByConcertId(Long concertId) {
-        return concertDateJpaRepository.findAllByConcertInfo_concertId(concertId);
-    }
-
-    @Override
-    public List<ConcertDate> findAllConcertDates() {
-        return concertDateJpaRepository.findAll();
-    }
-
-    @Override
-    public boolean existSeatByConcertDateAndStatus(Long concertDateId, SeatStatus status) {
-        return seatJpaRepository.existsByConcertDateInfo_concertDateIdAndStatus(concertDateId, status);
-    }
-
-    @Override
-    public List<Reservation> findAllReservation() {
-        return reservationJpaRepository.findAll();
-    }
-
-    @Override
-    public List<Reservation> findAllReservationByUserId(Long userId) {
-        return reservationJpaRepository.findAllByUserId(userId);
-    }
-
-    @Override
-    public List<Reservation> findAllReservationByStatusIs(ReservationStatus status) {
-        return reservationJpaRepository.findAllByStatusIs(status);
-    }
-
-    @Override
-    public Optional<Reservation> findReservationByReservationId(Long reservationId) {
-        return reservationJpaRepository.findById(reservationId);
-    }
-
-    @Override
-    public Reservation reserve(Reservation reservation) {
-        return reservationJpaRepository.save(reservation);
+    public List<ConcertDate> getConcertDates(Long concertId) {
+        return concertDateJpaRepository.findAllByConcertInfo_concertIdAndConcertDateAfter(
+                        concertId,
+                        getLocalDateTimeToString(now()))
+                .stream()
+                .map(ConcertDateEntity::toDomain)
+                .toList();
     }
 
 
     @Override
-    public boolean existsReservationByConcertDateIdAndSeatNumberAndStatusIsNot(Long concertDateId, int seatNumber, ReservationStatus status) {
-        return reservationJpaRepository.existsByConcertDateIdAndSeatNumberAndStatusIsNot(concertDateId, seatNumber, status);
-    }
-
-    @Override
-    public List<Seat> findAllSeatByConcertDateIdAndStatus(Long concertDateId, SeatStatus status) {
-        return seatJpaRepository.findAllByConcertDateInfo_concertDateIdAndStatus(concertDateId, status);
-    }
-
-    @Override
-    public Optional<Seat> findSeatBySeatId(Long seatId) {
-        return seatJpaRepository.findById(seatId);
-    }
-
-    @Override
-    public Optional<Seat> findSeatByConcertDateIdAndSeatNumber(Long concertDateId, int seatNumber) {
-        return seatJpaRepository.findByConcertDateInfo_concertDateIdAndSeatNumber(concertDateId, seatNumber);
+    public boolean existAvailableSeats(Long concertDateId) {
+        return seatJpaRepository.existsByConcertDateInfo_concertDateIdAndStatus(concertDateId, AVAILABLE);
 
     }
 
     @Override
-    public Optional<Seat> findSeatByConcertDateIdAndSeatNumberWithLock(Long concertDateId, int seatNumber) {
-        return seatJpaRepository.findSeatWithPessimisticLock(concertDateId, seatNumber);
-    }
-
-
-    @Override
-    public Optional<ConcertDate> findConcertDateByConcertDateIdAndConcertId(Long concertDateId, Long concertId) {
-        return concertDateJpaRepository.findByConcertDateIdAndConcertInfo_concertId(concertDateId, concertId);
+    public List<Seat> getAvailableSeats(Long concertDateId) {
+        return seatJpaRepository.findAllByConcertDateIdAndStatus(concertDateId, AVAILABLE)
+                .stream()
+                .map(SeatEntity::toDomain)
+                .toList();
     }
 
     @Override
-    public boolean existsConcertDateByConcertId(Long concertId) {
-        return concertDateJpaRepository.existsConcertDateByConcertInfo_ConcertId(concertId);
+    public Optional<Place> savePlace(Place place) {
+        PlaceEntity placeEntity = placeJpaRepository.save(PlaceEntity.toEntity(place));
+        return Optional.of(placeEntity.toDomain());
+    }
+
+    @Override
+    public Optional<Concert> saveConcert(Concert concert) {
+        ConcertEntity concertEntity = concertJpaRepository.save(ConcertEntity.toEntity(concert));
+        return Optional.of(concertEntity.toDomain());
+    }
+
+    @Override
+    public List<ConcertDate> saveConcertDates(List<ConcertDate> concertDates) {
+        return concertDateJpaRepository.saveAll(concertDates.stream()
+                        .map(ConcertDateEntity::toEntity)
+                        .toList())
+                .stream()
+                .map(ConcertDateEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Seat> saveSeats(List<Seat> seats) {
+        return seatJpaRepository.saveAll(seats.stream()
+                        .map(SeatEntity::toEntity)
+                        .toList())
+                .stream()
+                .map(SeatEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public boolean checkAlreadyReserved(Long concertId, Long concertDateId, int seatNumber) {
+        return reservationJpaRepository.existsByConcertIdAndConcertDateIdAndSeatNumberAndStatusIsNot(concertId,
+                concertDateId, seatNumber, ReservationStatus.CANCEL);
+    }
+
+    @Override
+    public Optional<ConcertDate> getDateForReservation(Long concertDateId, Long concertId) {
+        Optional<ConcertDateEntity> concertDateEntity = concertDateJpaRepository
+                .findByConcertDateIdAndConcertInfo_concertId(concertDateId, concertId);
+
+        if (concertDateEntity.isPresent()) {
+            return concertDateEntity.map(ConcertDateEntity::toDomain);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Seat> getSeatForReservation(Long concertDateId, int seatNumber) {
+        Optional<SeatEntity> seatEntity = seatJpaRepository
+                .findByConcertDateInfo_concertDateIdAndSeatNumber(concertDateId, seatNumber);
+
+        if (seatEntity.isPresent()) {
+            return seatEntity.map(SeatEntity::toDomain);
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ConcertReservationInfo> saveReservation(ConcertReservationInfo reservation) {
+        ConcertReservationEntity reservationEntity = reservationJpaRepository.save(
+                ConcertReservationEntity.toEntity(reservation));
+
+        return Optional.of(reservationEntity.toDomain());
+    }
+
+    @Override
+    public List<ConcertReservationInfo> getMyReservations(Long userId) {
+
+        return reservationJpaRepository.findAllByUserId(userId)
+                .stream()
+                .map(ConcertReservationEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<ConcertReservationInfo> getReservation(Long reservationId) {
+        Optional<ConcertReservationEntity> reservationEntity = reservationJpaRepository.findById(reservationId);
+
+        if (reservationEntity.isPresent()) {
+            return reservationEntity.map(ConcertReservationEntity::toDomain);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Seat> getSeat(Long seatId) {
+        Optional<SeatEntity> seatEntity = seatJpaRepository.findById(seatId);
+
+        if (seatEntity.isPresent()) {
+            return seatEntity.map(SeatEntity::toDomain);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Seat> saveSeat(Seat seat) {
+        SeatEntity seatEntity = seatJpaRepository.save(
+                SeatEntity.toEntity(seat));
+
+        return Optional.of(seatEntity.toDomain());
+    }
+
+    @Override
+    public List<ConcertReservationInfo> getAllTempReservation() {
+        List<ConcertReservationEntity> reservationEntities = reservationJpaRepository
+                .findAllByStatusIs(ReservationStatus.TEMPORARY_RESERVED);
+
+        return reservationEntities.stream()
+                .map(ConcertReservationEntity::toDomain)
+                .toList();
     }
 
     public void deleteAll() {

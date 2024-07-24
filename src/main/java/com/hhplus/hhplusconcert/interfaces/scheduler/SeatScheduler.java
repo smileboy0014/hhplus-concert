@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +19,6 @@ public class SeatScheduler { //좌석 관련 스케줄러
      */
     @Scheduled(fixedRate = 5000)
     public void checkOccupiedSeat() {
-        reservationFacade.checkOccupiedSeat(LocalDateTime.now());
+        reservationFacade.checkOccupiedSeat();
     }
 }

@@ -1,27 +1,36 @@
 package com.hhplus.hhplusconcert.infrastructure.queue;
 
-import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
-import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
+import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface WaitingQueueJpaRepository extends JpaRepository<WaitingQueue, Long> {
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus;
 
-    List<WaitingQueue> findAllByStatusIsOrderByRequestTime(WaitingQueueStatus status);
+public interface WaitingQueueJpaRepository extends JpaRepository<WaitingQueueEntity, Long> {
+    long countByStatusIs(WaitingQueueStatus active);
 
-    Optional<WaitingQueue> findByUser_userIdAndToken(Long userId, String token);
+    List<WaitingQueueEntity> findAllByStatusIsOrderByRequestTime(WaitingQueueStatus status);
 
-    WaitingQueue findByUser_UserIdAndStatusIs(Long userId, WaitingQueueStatus status);
+    @Query("SELECT w FROM WaitingQueueEntity w JOIN FETCH w.user u WHERE u.userId = :userId AND w.token = :token")
+    Optional<WaitingQueueEntity> findByUserIdAndToken(@Param("userId") Long userId,
+                                                      @Param("token") String token);
 
-    Optional<WaitingQueue> findByUser_userIdAndStatusIsNot(Long userId, WaitingQueueStatus status);
+    long countByRequestTimeBeforeAndStatusIs(LocalDateTime requestTime, WaitingQueueStatus wait);
 
-    Optional<WaitingQueue> findByToken(String token);
+    Optional<WaitingQueueEntity> findByToken(String token);
 
-    long countByStatusIs(WaitingQueueStatus status);
+    @Query("SELECT w FROM WaitingQueueEntity w WHERE w.activeTime <= :timeThreshold AND w.status = :status")
+    List<WaitingQueueEntity> getActiveOver10Min(@Param("timeThreshold") LocalDateTime timeThreshold,
+                                                @Param("status") WaitingQueue.WaitingQueueStatus status);
 
-    void deleteAllByStatusIs(WaitingQueueStatus status);
+    List<WaitingQueueEntity> findAllByUser_userId(Long userId);
 
-    List<WaitingQueue> findAllByStatusIs(WaitingQueueStatus status);
+    Optional<WaitingQueueEntity> findByUser_userIdAndStatusIs(Long userId, WaitingQueueStatus active);
+
+    void deleteAllInBatchByStatusIs(WaitingQueueStatus expired);
 }

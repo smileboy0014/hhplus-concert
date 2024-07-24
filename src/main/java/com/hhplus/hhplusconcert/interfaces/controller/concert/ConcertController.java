@@ -1,10 +1,10 @@
 package com.hhplus.hhplusconcert.interfaces.controller.concert;
 
 import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDateDto;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDto;
+import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertSeatDto;
 import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -36,11 +36,14 @@ public class ConcertController {
      * @return ApiResultResponse 콘서트 목록을 반환한다.
      */
     @Operation(summary = "콘서트 목록 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertInfo.class))))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertDto.Response.class))))
     @GetMapping
-    public ApiResultResponse<List<ConcertInfo>> getConcerts() {
+    public ApiResultResponse<List<ConcertDto.Response>> getConcerts() {
 
-        return ApiResultResponse.ok(concertFacade.getConcerts());
+        return ApiResultResponse.ok(
+                concertFacade.getConcerts().stream()
+                        .map(ConcertDto.Response::of)
+                        .toList());
     }
 
     /**
@@ -50,11 +53,11 @@ public class ConcertController {
      * @return ApiResultResponse 콘서트 상세 정보를 반환한다.
      */
     @Operation(summary = "콘서트 상세 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ConcertInfo.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ConcertDto.Response.class)))
     @GetMapping("/{concertId}")
-    public ApiResultResponse<ConcertInfo> getConcert(@PathVariable(name = "concertId") @NotNull Long concertId) {
+    public ApiResultResponse<ConcertDto.Response> getConcert(@PathVariable(name = "concertId") @NotNull Long concertId) {
 
-        return ApiResultResponse.ok(concertFacade.getConcert(concertId));
+        return ApiResultResponse.ok(ConcertDto.Response.of(concertFacade.getConcert(concertId)));
     }
 
     /**
@@ -64,11 +67,14 @@ public class ConcertController {
      * @return ApiResultResponse 콘서트 예약 가능한 날짜를 반환한다.
      */
     @Operation(summary = "콘서트 예약 가능한 날짜 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertDateInfo.class))))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertDateDto.Response.class))))
     @GetMapping("/{concertId}/dates")
-    public ApiResultResponse<List<ConcertDateInfo>> getConcertDates(@PathVariable(name = "concertId") @NotNull Long concertId) {
+    public ApiResultResponse<List<ConcertDateDto.Response>> getAvailableConcertDates(@PathVariable(name = "concertId") @NotNull Long concertId) {
 
-        return ApiResultResponse.ok(concertFacade.getConcertDates(concertId));
+        return ApiResultResponse.ok(
+                concertFacade.getAvailableConcertDates(concertId).stream()
+                        .map(ConcertDateDto.Response::of)
+                        .toList());
     }
 
     /**
@@ -78,10 +84,13 @@ public class ConcertController {
      * @return ApiResultResponse 콘서트 예약 가능한 좌석 정보를 반환한다.
      */
     @Operation(summary = "콘서트 예약 가능한 좌석 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertSeatInfo.class))))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertSeatDto.Response.class))))
     @GetMapping("/dates/{concertDateId}/seats")
-    public ApiResultResponse<List<ConcertSeatInfo>> getAvailableSeats(@PathVariable(name = "concertDateId") @NotNull Long concertDateId) {
-        return ApiResultResponse.ok(concertFacade.getAvailableSeats(concertDateId));
+    public ApiResultResponse<List<ConcertSeatDto.Response>> getAvailableSeats(@PathVariable(name = "concertDateId") @NotNull Long concertDateId) {
+        return ApiResultResponse.ok(
+                concertFacade.getAvailableSeats(concertDateId).stream()
+                        .map(ConcertSeatDto.Response::of)
+                        .toList());
 
     }
 }

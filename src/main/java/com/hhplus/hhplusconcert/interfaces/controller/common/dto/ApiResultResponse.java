@@ -18,5 +18,4 @@ public record ApiResultResponse<T>(HttpStatus status, boolean success, String ms
         return of(HttpStatus.OK, true, data);
     }
 
-
 }
