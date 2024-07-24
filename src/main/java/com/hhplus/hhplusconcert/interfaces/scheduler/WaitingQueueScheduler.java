@@ -30,9 +30,9 @@ public class WaitingQueueScheduler { // 대기열 관련 스케줄러
     }
 
     /**
-     * expired 된 토큰을 자정마다 삭제하는 스케줄러 실행
+     * expired 된 토큰을 1분 마다 삭제하는 스케줄러 실행
      */
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(fixedRate = 1 * 1000 * 60)
     public void deleteAllExpireWaitingQueue() {
         waitingQueueFacade.deleteAllExpireToken();
     }

@@ -2,9 +2,8 @@ package com.hhplus.hhplusconcert.support.utils;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
-import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
-import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
-import com.hhplus.hhplusconcert.domain.queue.service.WaitingQueueFinder;
+import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
+import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -20,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Optional;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 
@@ -34,7 +34,7 @@ public class JwtUtils {
     // 토큰 유효시간 1시간
     public static final long EXP_TIME = 60 * 60 * 1000L;
 
-    private final WaitingQueueFinder waitingQueueFinder;
+    private final WaitingQueueRepository waitingQueueRepository;
 
     /**
      * 토큰을 생성한다.
@@ -66,7 +66,6 @@ public class JwtUtils {
             throw new CustomException(TOKEN_IS_NOT_FOUND,
                     "토큰이 존재하지 않습니다. 다시 토큰을 발급 후 시도해주세요.");
         }
-
         // 토큰 파싱
         Jws<Claims> claims;
         try {
@@ -103,8 +102,12 @@ public class JwtUtils {
      * @param token JWT 토큰 정보
      */
     private void changeTokenStatus(String token) {
-        WaitingQueue expiredToken = waitingQueueFinder.findWaitingQueueByToken(token);
-        expiredToken.expire();
+        Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(token);
+
+        if (tokenInfo.isPresent()) {
+            tokenInfo.get().expire();
+            waitingQueueRepository.saveQueue(tokenInfo.get());
+        }
     }
 
     /**
@@ -115,17 +118,18 @@ public class JwtUtils {
      */
     public void validToken(Long userId, String token) {
         // 사용자 토큰이 active 상태인지 확인
-        WaitingQueue queue = waitingQueueFinder.findWaitingQueueIsActive(userId, token);
-        if (queue == null) {
-            throw new CustomException(ErrorCode.NOT_EXIST_IN_WAITING_QUEUE,
-                    "발급받은 토큰을 가지고 대기열부터 입장해주세요.");
+        Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(userId, token);
+
+        if (tokenInfo.isEmpty()) {
+            throw new CustomException(ErrorCode.TOKEN_IS_NOT_FOUND,
+                    "토큰을 다시 발급 받아 주세요.");
         }
-        if (queue.getStatus() != WaitingQueueStatus.ACTIVE) {
+
+        if (tokenInfo.get().getStatus() != WaitingQueue.WaitingQueueStatus.ACTIVE) {
             throw new CustomException(ErrorCode.TOKEN_IS_NOT_ACTIVE,
-                    "토큰이 활성화 되지 않았습니다. 대기열을 확인해 주세요.");
+                    "토큰이 활성화 되지 않았습니다. 토큰을 다시 발급 받아 주세요.");
         }
     }
-
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);

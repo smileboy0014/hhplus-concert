@@ -41,7 +41,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         if (!StringUtils.hasLength(authorization)) {
             throw new CustomException(TOKEN_IS_NOT_FOUND,
-                    "토큰이 존재하지 않습니다. 다시 토큰을 헤더에 싣고 다시 시도해주세요.");
+                    "토큰이 존재하지 않습니다. 다시 토큰을 헤더에 싣고 시도해주세요.");
         }
         // JWT 여부 확인
         String token = authorization.replaceAll("Bearer ", "");
