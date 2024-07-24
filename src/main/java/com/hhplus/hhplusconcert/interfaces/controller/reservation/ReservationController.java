@@ -1,9 +1,8 @@
 package com.hhplus.hhplusconcert.interfaces.controller.reservation;
 
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
-import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
-import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationReserveRequest;
+import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationDto;
 import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.hhplus.hhplusconcert.interfaces.controller.reservation.enums.ReservationEnums.SUCCESS_CANCEL_RESERVATION;
 
 @RestController
 @Tag(name = "예약", description = "Reservation-controller")
@@ -26,6 +24,8 @@ import static com.hhplus.hhplusconcert.interfaces.controller.reservation.enums.R
 @RequiredArgsConstructor
 @RequestMapping("/v1/reservations")
 public class ReservationController {
+
+    public static final String SUCCESS_CANCEL_RESERVATION = "예약을 취소하는데 성공하였습니다";
 
     private final ReservationFacade reservationFacade;
 
@@ -36,25 +36,27 @@ public class ReservationController {
      * @return ApiResultResponse 예약 완료 정보를 반환한다.
      */
     @Operation(summary = "좌석 예약 요청")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ReservationInfo.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ReservationDto.Response.class)))
     @PostMapping
-    public ApiResultResponse<ReservationInfo> reserveSeat(@RequestBody @Valid ReservationReserveRequest request) {
+    public ApiResultResponse<ReservationDto.Response> reserveSeat(@RequestBody @Valid ReservationDto.Request request) {
 
-        return ApiResultResponse.ok(reservationFacade.reserveSeat(request.toServiceRequest()));
+        return ApiResultResponse.ok(ReservationDto.Response.of(reservationFacade.reserveSeat(request.toCreateCommand())));
     }
 
     /**
-     * 예약 내역 조회
+     * 나의 예약 내역 조회
      *
      * @param userId userId 정보
      * @return ApiResultResponse 나의 예약 내역을 반환한다.
      */
     @Operation(summary = "예약 내역 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReservationInfo.class))))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReservationDto.Response.class))))
     @GetMapping("/{userId}")
-    public ApiResultResponse<List<ReservationInfo>> getReservations(@PathVariable(name = "userId") @NotNull Long userId) {
+    public ApiResultResponse<List<ReservationDto.Response>> getMyReservations(@PathVariable(name = "userId") @NotNull Long userId) {
 
-        return ApiResultResponse.ok(reservationFacade.getReservations(userId));
+        return ApiResultResponse.ok(
+                reservationFacade.getMyReservations(userId).stream()
+                        .map(ReservationDto.Response::of).toList());
     }
 
     /**
@@ -69,7 +71,7 @@ public class ReservationController {
     public ApiResultResponse<String> cancelReservation(@PathVariable(name = "reservationId") @NotNull Long reservationId) {
         reservationFacade.cancelReservation(reservationId);
 
-        return ApiResultResponse.ok(SUCCESS_CANCEL_RESERVATION.getMessage());
+        return ApiResultResponse.ok(SUCCESS_CANCEL_RESERVATION);
     }
 
 }
