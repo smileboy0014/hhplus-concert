@@ -1,9 +1,8 @@
 package com.hhplus.hhplusconcert.interfaces.controller.user;
 
 import com.hhplus.hhplusconcert.application.user.UserFacade;
-import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
-import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceRequest;
+import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceDto;
 import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,12 +30,12 @@ public class UserController {
      * @return ApiResultResponse 유저의 잔액 정보를 반환한다.
      */
     @Operation(summary = "잔액 조회")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = UserInfo.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = UserBalanceDto.Response.class)))
     @GetMapping("/{userId}/balance")
-    public ApiResultResponse<UserInfo> getBalance(@PathVariable("userId")
-                                                  @NotNull(message = "유저 ID는 필수값 입니다.") Long userId) {
+    public ApiResultResponse<UserBalanceDto.Response> getBalance(@PathVariable("userId") @NotNull(message = "유저 ID는 필수값 입니다.") Long userId) {
 
-        return ApiResultResponse.ok(userFacade.getBalance(userId));
+        return ApiResultResponse.ok(
+                UserBalanceDto.Response.of(userFacade.getBalance(userId)));
     }
 
     /**
@@ -47,11 +46,13 @@ public class UserController {
      * @return ApiResultResponse 유저의 충전된 잔액 정보를 반환한다.
      */
     @Operation(summary = "잔액 충전")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = UserInfo.class)))
+    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = UserBalanceDto.Response.class)))
     @PatchMapping("/{userId}/charge")
-    public ApiResultResponse<UserInfo> chargeBalance(@PathVariable("userId")
-                                                     @NotNull(message = "유저 ID는 필수값 입니다.") Long userId,
-                                                     @RequestBody UserBalanceRequest request) {
-        return ApiResultResponse.ok(userFacade.chargeBalance(request.toServiceRequest(userId)));
+    public ApiResultResponse<UserBalanceDto.Response> chargeBalance(@PathVariable("userId")
+                                                                    @NotNull(message = "유저 ID는 필수값 입니다.") Long userId,
+                                                                    @RequestBody UserBalanceDto.Request request) {
+        return ApiResultResponse.ok(
+                UserBalanceDto.Response.of(userFacade.chargeBalance(request.toCreateCommand(userId))));
+
     }
 }

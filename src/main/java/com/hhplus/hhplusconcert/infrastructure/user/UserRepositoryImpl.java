@@ -1,11 +1,10 @@
 package com.hhplus.hhplusconcert.infrastructure.user;
 
-import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,28 +14,19 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserJpaRepository userJpaRepository;
 
     @Override
-    public User addUser(User user) {
-        return userJpaRepository.save(user);
+    public Optional<User> getUser(Long userId) {
+        Optional<UserEntity> userEntity = userJpaRepository.findById(userId);
+        if (userEntity.isPresent()) {
+            return userEntity.map(UserEntity::toDomain);
+        }
+
+        return Optional.empty();
     }
 
     @Override
-    public List<User> findAll() {
-        return userJpaRepository.findAll();
-    }
-
-    @Override
-    public Optional<User> findUserByUserId(Long userId) {
-        return userJpaRepository.findById(userId);
-    }
-
-    @Override
-    public Optional<User> findUserByUserIdWithLock(Long userId) {
-        return userJpaRepository.findUserByUserIdWithLock(userId);
-    }
-
-    @Override
-    public boolean existsByUserId(Long userId) {
-        return userJpaRepository.existsByUserId(userId);
+    public Optional<User> saveUser(User user) {
+        UserEntity userEntity = userJpaRepository.save(UserEntity.toEntity(user));
+        return Optional.of(userEntity.toDomain());
     }
 
     @Override
