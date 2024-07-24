@@ -1,18 +1,24 @@
 package com.hhplus.hhplusconcert.infrastructure.concert;
 
-import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ConcertDateJpaRepository extends JpaRepository<ConcertDate, Long> {
+public interface ConcertDateJpaRepository extends JpaRepository<ConcertDateEntity, Long> {
 
-    List<ConcertDate> findAllByConcertInfo_concertId(Long concertId);
+    @Query("SELECT cd FROM ConcertDateEntity cd " +
+            "JOIN FETCH cd.concertInfo ci " +
+            "JOIN FETCH cd.placeInfo pi " +
+            "WHERE ci.concertId = :concertId " +
+            "AND cd.concertDate > :concertDate")
+    List<ConcertDateEntity> findAllByConcertInfo_concertIdAndConcertDateAfter(@Param("concertId") Long concertId,
+                                                                              @Param("concertDate") String concertDate);
 
-    Optional<ConcertDate> findByConcertDateIdAndConcertInfo_concertId(Long concertDateId, Long concertId);
-
-    boolean existsConcertDateByConcertInfo_ConcertId(Long concertId);
+    Optional<ConcertDateEntity> findByConcertDateIdAndConcertInfo_concertId(Long concertDateId, Long concertId);
 
     void deleteAllInBatch();
+
 }

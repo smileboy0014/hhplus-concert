@@ -1,4 +1,4 @@
-package com.hhplus.hhplusconcert.domain.common.model;
+package com.hhplus.hhplusconcert.infrastructure.common.model;
 
 
 import jakarta.persistence.EntityListeners;

@@ -1,42 +1,47 @@
-package com.hhplus.hhplusconcert.domain.concert.entity;
+package com.hhplus.hhplusconcert.domain.concert;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
-import com.hhplus.hhplusconcert.domain.common.model.BaseTimeEntity;
-import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
-import com.hhplus.hhplusconcert.domain.concert.enums.TicketClass;
-import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.SEAT_CAN_RESERVE;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.SEAT_IS_UNAVAILABLE;
 
-@Entity
-@Getter
-@Builder
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Table(name = "seat")
-public class Seat extends BaseTimeEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+@AllArgsConstructor
+@Builder(toBuilder = true)
+@Getter
+public class Seat {
+
     private Long seatId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "concert_date_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ConcertDate concertDateInfo;
 
     private int seatNumber;
 
     private BigDecimal price;
 
-    @Enumerated(EnumType.STRING)
     private SeatStatus status; // available, unavailable
 
-    @Enumerated(EnumType.STRING)
     private TicketClass ticketClass; // S > A > B > C
+
+    private LocalDateTime createdAt;
+
+    public enum SeatStatus {
+        AVAILABLE, // 이용 가능
+        UNAVAILABLE // 이용 불가능
+    }
+
+    public enum TicketClass {
+        C, // C class
+        B, // B class
+        A, // A class
+        S // S class
+    }
 
     public void occupy() {
         if (status == SeatStatus.UNAVAILABLE) {
@@ -52,22 +57,6 @@ public class Seat extends BaseTimeEntity {
                     "이미 예약 가능한 좌석입니다. [seatNumber : %d]".formatted(seatNumber));
         }
         this.status = SeatStatus.AVAILABLE;
-    }
-
-    public void classS() {
-        this.ticketClass = TicketClass.S;
-    }
-
-    public void classA() {
-        this.ticketClass = TicketClass.A;
-    }
-
-    public void classB() {
-        this.ticketClass = TicketClass.B;
-    }
-
-    public void classC() {
-        this.ticketClass = TicketClass.C;
     }
 
 }
