@@ -1,0 +1,23 @@
+<included>
+    <appender name="DEFAULT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch> <!-- 해당 레벨만 기록한다. -->
+            <onMismatch>DENY
+            </onMismatch> <!-- 다른 수준의 레벨은 기록하지 않는다.(상위 레벨도 기록 안함), 상위 수준의 레벨에 대한 기록을 원하면 ACCEPT 로 하면 기록된다. -->
+        </filter> <!-- 레벨별 필터링이 필요없을 경우 filter class 관련된 부분을 삭제하면 됨-->
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern> <!-- 해당 패턴 네이밍으로 현재 로그가 기록됨 -->
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>./logs/default/default-logs.%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern> <!-- 해당 패턴 네이밍으로 이전 파일이 기록됨, %i는 rolling index -->
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP"> <!-- 정해둔 시간에 맞춰 사이즈에 알맞게 로깅을 하겠다는 정책 -->
+                <maxFileSize>20MB</maxFileSize> <!-- 한 파일의 최대 용량 -->
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory> <!-- 한 파일의 최대 저장 기한 -->
+            <totalSizeCap>100MB</totalSizeCap> <!-- 전체 로깅파일의 크기를 제어한다. 제한 크기를 초과하면 가장 오래된 파일을 삭제 -->
+        </rollingPolicy>
+    </appender>
+</included>

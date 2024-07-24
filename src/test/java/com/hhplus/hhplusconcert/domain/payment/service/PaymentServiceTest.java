@@ -1,17 +1,17 @@
 package com.hhplus.hhplusconcert.domain.payment.service;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomBadRequestException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.concert.entity.Reservation;
+import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import com.hhplus.hhplusconcert.domain.payment.entity.Payment;
 import com.hhplus.hhplusconcert.domain.payment.enums.PaymentStatus;
-import com.hhplus.hhplusconcert.domain.payment.repository.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PayServiceRequest;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.domain.queue.entity.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
-import com.hhplus.hhplusconcert.domain.queue.repository.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.domain.queue.service.WaitingQueueFinder;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.service.UserFinder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.NOT_AVAILABLE_STATE_PAYMENT;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.NOT_ENOUGH_BALANCE;
+import static java.time.LocalDateTime.now;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
@@ -31,11 +32,13 @@ import static org.mockito.Mockito.when;
 class PaymentServiceTest {
 
     @Mock
-    private PaymentRepository paymentRepository;
+    private PaymentFinder paymentFinder;
     @Mock
-    private UserRepository userRepository;
+    private PaymentReader paymentReader;
     @Mock
-    private WaitingQueueRepository waitingQueueRepository;
+    private UserFinder userFinder;
+    @Mock
+    private WaitingQueueFinder waitingQueueFinder;
     @InjectMocks
     private PaymentService paymentService;
 
@@ -55,11 +58,19 @@ class PaymentServiceTest {
                 .userId(1L)
                 .build();
 
-        Reservation reservation = Reservation.builder().build();
+        Reservation reservation = Reservation.builder()
+                .status(ReservationStatus.TEMPORARY_RESERVED).build();
 
         Payment payment = Payment
                 .builder()
                 .status(PaymentStatus.WAIT)
+                .price(BigDecimal.valueOf(50000))
+                .reservation(reservation)
+                .build();
+
+        Payment afterPayment = Payment
+                .builder()
+                .status(PaymentStatus.COMPLETE)
                 .price(BigDecimal.valueOf(50000))
                 .reservation(reservation)
                 .build();
@@ -69,12 +80,21 @@ class PaymentServiceTest {
                 .balance(BigDecimal.valueOf(100000))
                 .build();
 
-        WaitingQueue waitingQueue = WaitingQueue.builder().build();
+        User afterUser = User
+                .builder()
+                .balance(BigDecimal.valueOf(50000))
+                .build();
 
-        when(paymentRepository.findByReservationId(request.reservationId())).thenReturn(payment);
-        when(userRepository.findUserByUserId(request.userId())).thenReturn(user);
-        when(waitingQueueRepository.findByUserIdAndStatusIs(1L, WaitingQueueStatus.ACTIVE))
+        WaitingQueue waitingQueue = WaitingQueue.builder()
+                .requestTime(now()).build();
+
+        PaymentInfo info = PaymentInfo.of(afterPayment, afterUser);
+
+        when(paymentFinder.findPaymentByReservationId(request.reservationId())).thenReturn((payment));
+        when(userFinder.findUserByUserIdWithLock(request.userId())).thenReturn((user));
+        when(waitingQueueFinder.findWaitingQueueByUserIdAndStatusIs(1L, WaitingQueueStatus.ACTIVE))
                 .thenReturn(waitingQueue);
+        when(paymentReader.readPayment(payment, user)).thenReturn(info);
 
         //when
         PaymentInfo result = paymentService.pay(request);
@@ -98,11 +118,11 @@ class PaymentServiceTest {
                 .status(PaymentStatus.COMPLETE)
                 .build();
 
-        when(paymentRepository.findByReservationId(request.reservationId())).thenReturn(payment);
+        when(paymentFinder.findPaymentByReservationId(request.reservationId())).thenReturn((payment));
 
         //when //then
         assertThatThrownBy(() -> paymentService.pay(request))
-                .isInstanceOf(CustomBadRequestException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(NOT_AVAILABLE_STATE_PAYMENT);
     }
@@ -128,13 +148,13 @@ class PaymentServiceTest {
                 .balance(BigDecimal.valueOf(50000))
                 .build();
 
-        when(paymentRepository.findByReservationId(request.reservationId())).thenReturn(payment);
-        when(userRepository.findUserByUserId(request.userId())).thenReturn(user);
+        when(paymentFinder.findPaymentByReservationId(request.reservationId())).thenReturn((payment));
+        when(userFinder.findUserByUserIdWithLock(request.userId())).thenReturn((user));
 
 
         //when //then
         assertThatThrownBy(() -> paymentService.pay(request))
-                .isInstanceOf(CustomBadRequestException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(NOT_ENOUGH_BALANCE);
     }

@@ -4,6 +4,7 @@ import com.hhplus.hhplusconcert.domain.user.entity.User;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository {
@@ -12,9 +13,11 @@ public interface UserRepository {
 
     User addUser(User user);
 
-    User findUserByUserId(Long userId);
+    Optional<User> findUserByUserId(Long userId);
 
     boolean existsByUserId(Long userId);
 
     void deleteAll();
+
+    Optional<User> findUserByUserIdWithLock(Long userId);
 }

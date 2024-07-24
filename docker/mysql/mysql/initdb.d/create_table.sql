@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS users
 (
     user_id    BIGINT NOT NULL AUTO_INCREMENT,
     balance    DECIMAL(38, 2),
+    version    INT    NOT NULL,
     created_at DATETIME(6),
     updated_at DATETIME(6),
     PRIMARY KEY (user_id)
@@ -112,7 +113,7 @@ CREATE TABLE IF NOT EXISTS waiting_queue
     token            VARCHAR(255),
 #     status           VARCHAR(255),
     status           ENUM ('WAIT','ACTIVE','EXPIRED'),
-    request_time     TIMESTAMP,
-    active_time      TIMESTAMP,
+    request_time     DATETIME(6),
+    active_time      DATETIME(6),
     PRIMARY KEY (waiting_queue_id)
 ) ENGINE = InnoDB;

@@ -5,6 +5,7 @@ import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertDateInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertInfo;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ConcertSeatInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
+import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @RestController
 @Tag(name = "콘서트", description = "Concert-controller")
+@TraceLog
 @RequiredArgsConstructor
 @RequestMapping("/v1/concerts")
 public class ConcertController {

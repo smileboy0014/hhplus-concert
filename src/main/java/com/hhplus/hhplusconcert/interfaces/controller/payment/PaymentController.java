@@ -4,6 +4,7 @@ import com.hhplus.hhplusconcert.application.payment.PaymentFacade;
 import com.hhplus.hhplusconcert.domain.payment.service.dto.PaymentInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PayRequest;
+import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "결제", description = "Payment-controller")
+@TraceLog
 @RequiredArgsConstructor
 @RequestMapping("/v1/payments")
 public class PaymentController {

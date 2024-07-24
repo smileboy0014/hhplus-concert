@@ -1,8 +1,7 @@
 package com.hhplus.hhplusconcert.domain.user.service;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
-import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserInfo;
 import com.hhplus.hhplusconcert.domain.user.service.dto.UserServiceRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +21,9 @@ import static org.mockito.Mockito.when;
 class UserServiceTest {
 
     @Mock
-    UserRepository userRepository;
+    private UserFinder userFinder;
+    @Mock
+    private UserReader userReader;
 
     @InjectMocks
     UserService userService;
@@ -42,7 +43,10 @@ class UserServiceTest {
                 .balance(BigDecimal.valueOf(50000))
                 .build();
 
-        when(userRepository.findUserByUserId(user.getUserId())).thenReturn(user);
+        UserInfo userInfo = UserInfo.of(user);
+
+        when(userFinder.findUserByUserId(user.getUserId())).thenReturn(user);
+        when(userReader.readUser(user)).thenReturn(userInfo);
 
         // when
         UserInfo result = userService.getBalance(user.getUserId());
@@ -57,13 +61,13 @@ class UserServiceTest {
         // given
         Long userId = 1L;
 
-        when(userRepository.findUserByUserId(userId)).thenThrow(
-                new CustomNotFoundException(USER_IS_NOT_FOUND,
+        when(userFinder.findUserByUserId(userId)).thenThrow(
+                new CustomException(USER_IS_NOT_FOUND,
                         USER_IS_NOT_FOUND.getMsg()));
 
         // when // then
         assertThatThrownBy(() -> userService.getBalance(userId))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(USER_IS_NOT_FOUND);
     }
@@ -87,7 +91,16 @@ class UserServiceTest {
                 .balance(BigDecimal.ZERO)
                 .build();
 
-        when(userRepository.findUserByUserId(userId)).thenReturn(user);
+        User resultUser = User
+                .builder()
+                .userId(userId)
+                .balance(BigDecimal.valueOf(50000))
+                .build();
+
+        UserInfo userInfo = UserInfo.of(resultUser);
+
+        when(userFinder.findUserByUserIdWithLock(userId)).thenReturn(user);
+        when(userReader.readUser(user)).thenReturn(userInfo);
 
         // when
         UserInfo result = userService.chargeBalance(request);
@@ -109,15 +122,13 @@ class UserServiceTest {
                 .balance(chargeAmount)
                 .build();
 
-        when(userRepository.findUserByUserId(userId)).thenThrow(
-                new CustomNotFoundException(USER_IS_NOT_FOUND, USER_IS_NOT_FOUND.getMsg()));
+        when(userFinder.findUserByUserIdWithLock(userId)).thenThrow(
+                new CustomException(USER_IS_NOT_FOUND, USER_IS_NOT_FOUND.getMsg()));
 
         // when // then
         assertThatThrownBy(() -> userService.chargeBalance(request))
-                .isInstanceOf(CustomNotFoundException.class)
+                .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(USER_IS_NOT_FOUND);
     }
-
-
 }

@@ -5,7 +5,7 @@ import com.hhplus.hhplusconcert.domain.queue.enums.WaitingQueueStatus;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import lombok.Builder;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Builder
 public record WaitingQueueEnterServiceRequest(Long userId,
@@ -17,9 +17,8 @@ public record WaitingQueueEnterServiceRequest(Long userId,
                 .user(user)
                 .token(token)
                 .status(status)
-                .requestTime(new Timestamp(System.currentTimeMillis()))
-                .activeTime(status == WaitingQueueStatus.ACTIVE ? new Timestamp(System.currentTimeMillis())
-                        : null)
+                .requestTime(LocalDateTime.now())
+                .activeTime(status == WaitingQueueStatus.ACTIVE ? LocalDateTime.now() : null)
                 .build();
 
     }

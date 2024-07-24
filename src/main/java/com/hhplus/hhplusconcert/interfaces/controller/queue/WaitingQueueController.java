@@ -6,6 +6,7 @@ import com.hhplus.hhplusconcert.domain.queue.service.dto.WaitingQueueTokenInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueEnterRequest;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueTokenRequest;
+import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "대기열", description = "WaitingQueue-controller")
+@TraceLog
 @RequiredArgsConstructor
 @RequestMapping("/v1/queues")
 public class WaitingQueueController {

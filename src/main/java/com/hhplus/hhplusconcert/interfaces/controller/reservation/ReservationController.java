@@ -4,6 +4,7 @@ import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
 import com.hhplus.hhplusconcert.domain.concert.service.dto.ReservationInfo;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationReserveRequest;
+import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,6 +22,7 @@ import static com.hhplus.hhplusconcert.interfaces.controller.reservation.enums.R
 
 @RestController
 @Tag(name = "예약", description = "Reservation-controller")
+@TraceLog
 @RequiredArgsConstructor
 @RequestMapping("/v1/reservations")
 public class ReservationController {

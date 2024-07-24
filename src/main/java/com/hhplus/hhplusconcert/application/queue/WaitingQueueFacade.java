@@ -45,11 +45,19 @@ public class WaitingQueueFacade {
     }
 
     /**
-     * 만료시간이 된 토큰을 만료시키고, 대기열에 있는 토큰을 순차적으로 active 시키는 유즈케이스를 실행한다.
+     * 대기열에 있는 토큰을 순차적으로 active 시키는 유즈케이스를 실행한다.
      */
     public void active() {
         waitingQueueService.active();
     }
+
+    /**
+     * 시간이 만료된 active token 을 expired 시키는 유즈케이스를 실행한다.
+     */
+    public void expire() {
+        waitingQueueService.expire();
+    }
+
 
     /**
      * 만료된 토큰을 삭제하는 유즈케이스를 실행한다.
@@ -57,4 +65,6 @@ public class WaitingQueueFacade {
     public void deleteAllExpireToken() {
         waitingQueueService.deleteAllExpireToken();
     }
+
+
 }

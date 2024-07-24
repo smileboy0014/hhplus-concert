@@ -1,14 +1,12 @@
 package com.hhplus.hhplusconcert.infrastructure.user;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
 import com.hhplus.hhplusconcert.domain.user.entity.User;
 import com.hhplus.hhplusconcert.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_IS_NOT_FOUND;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -27,10 +25,13 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public User findUserByUserId(Long userId) {
-        return userJpaRepository.findById(userId)
-                .orElseThrow(() -> new CustomNotFoundException(USER_IS_NOT_FOUND,
-                        "유저 정보가 존재하지 않습니다. [userId : %d]".formatted(userId)));
+    public Optional<User> findUserByUserId(Long userId) {
+        return userJpaRepository.findById(userId);
+    }
+
+    @Override
+    public Optional<User> findUserByUserIdWithLock(Long userId) {
+        return userJpaRepository.findUserByUserIdWithLock(userId);
     }
 
     @Override
@@ -42,4 +43,6 @@ public class UserRepositoryImpl implements UserRepository {
     public void deleteAll() {
         userJpaRepository.deleteAllInBatch();
     }
+
+
 }

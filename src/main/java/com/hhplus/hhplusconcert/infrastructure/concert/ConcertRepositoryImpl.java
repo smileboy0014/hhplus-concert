@@ -1,17 +1,14 @@
 package com.hhplus.hhplusconcert.infrastructure.concert;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomNotFoundException;
-import com.hhplus.hhplusconcert.domain.concert.entity.Concert;
-import com.hhplus.hhplusconcert.domain.concert.entity.ConcertDate;
-import com.hhplus.hhplusconcert.domain.concert.entity.Seat;
+import com.hhplus.hhplusconcert.domain.concert.entity.*;
+import com.hhplus.hhplusconcert.domain.concert.enums.ReservationStatus;
 import com.hhplus.hhplusconcert.domain.concert.enums.SeatStatus;
 import com.hhplus.hhplusconcert.domain.concert.repository.ConcertRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,6 +17,13 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     private final ConcertJpaRepository concertJpaRepository;
     private final ConcertDateJpaRepository concertDateJpaRepository;
     private final SeatJpaRepository seatJpaRepository;
+    private final PlaceJpaRepository placeJpaRepository;
+    private final ReservationJpaRepository reservationJpaRepository;
+
+    @Override
+    public Place addPlace(Place place) {
+        return placeJpaRepository.save(place);
+    }
 
     @Override
     public List<Concert> findAllConcert() {
@@ -27,10 +31,8 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public Concert findConcertByConcertId(Long concertId) {
-        return concertJpaRepository.findById(concertId)
-                .orElseThrow(() -> new CustomNotFoundException(CONCERT_IS_NOT_FOUND,
-                        "콘서트 정보를 찾을 수 없습니다. [ConcertId : %d]".formatted(concertId)));
+    public Optional<Concert> findConcertByConcertId(Long concertId) {
+        return concertJpaRepository.findById(concertId);
     }
 
     @Override
@@ -63,10 +65,35 @@ public class ConcertRepositoryImpl implements ConcertRepository {
         return seatJpaRepository.existsByConcertDateInfo_concertDateIdAndStatus(concertDateId, status);
     }
 
-    public void deleteAll() {
-        concertJpaRepository.deleteAllInBatch();
-        concertDateJpaRepository.deleteAllInBatch();
-        seatJpaRepository.deleteAllInBatch();
+    @Override
+    public List<Reservation> findAllReservation() {
+        return reservationJpaRepository.findAll();
+    }
+
+    @Override
+    public List<Reservation> findAllReservationByUserId(Long userId) {
+        return reservationJpaRepository.findAllByUserId(userId);
+    }
+
+    @Override
+    public List<Reservation> findAllReservationByStatusIs(ReservationStatus status) {
+        return reservationJpaRepository.findAllByStatusIs(status);
+    }
+
+    @Override
+    public Optional<Reservation> findReservationByReservationId(Long reservationId) {
+        return reservationJpaRepository.findById(reservationId);
+    }
+
+    @Override
+    public Reservation reserve(Reservation reservation) {
+        return reservationJpaRepository.save(reservation);
+    }
+
+
+    @Override
+    public boolean existsReservationByConcertDateIdAndSeatNumberAndStatusIsNot(Long concertDateId, int seatNumber, ReservationStatus status) {
+        return reservationJpaRepository.existsByConcertDateIdAndSeatNumberAndStatusIsNot(concertDateId, seatNumber, status);
     }
 
     @Override
@@ -75,30 +102,38 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public Seat findSeatBySeatId(Long seatId) {
-        return seatJpaRepository.findById(seatId)
-                .orElseThrow(() -> new CustomNotFoundException(SEAT_IS_NOT_FOUND,
-                        "좌석 정보가 존재하지 않습니다. [seatId : %d]".formatted(seatId)));
+    public Optional<Seat> findSeatBySeatId(Long seatId) {
+        return seatJpaRepository.findById(seatId);
     }
 
     @Override
-    public Seat findBySeatConcertDateIdAndSeatNumber(Long concertDateId, int seatNumber) {
-        return seatJpaRepository.findByConcertDateInfo_concertDateIdAndSeatNumber(concertDateId, seatNumber)
-                .orElseThrow(() -> new CustomNotFoundException(RESERVATION_IS_ALREADY_EXISTED,
-                        "이미 해당 좌석의 예약 내역이 존재합니다. [seatNumber : %d]".formatted(seatNumber)));
+    public Optional<Seat> findSeatByConcertDateIdAndSeatNumber(Long concertDateId, int seatNumber) {
+        return seatJpaRepository.findByConcertDateInfo_concertDateIdAndSeatNumber(concertDateId, seatNumber);
 
     }
 
     @Override
-    public ConcertDate findConcertDateByConcertDateIdAndConcertId(Long concertDateId, Long concertId) {
-        return concertDateJpaRepository.findByConcertDateIdAndConcertInfo_concertId(concertDateId, concertId)
-                .orElseThrow(() -> new CustomNotFoundException(AVAILABLE_DATE_IS_NOT_FOUND,
-                        "예약 가능한 콘서트 날짜가 존재하지 않습니다."));
+    public Optional<Seat> findSeatByConcertDateIdAndSeatNumberWithLock(Long concertDateId, int seatNumber) {
+        return seatJpaRepository.findSeatWithPessimisticLock(concertDateId, seatNumber);
+    }
+
+
+    @Override
+    public Optional<ConcertDate> findConcertDateByConcertDateIdAndConcertId(Long concertDateId, Long concertId) {
+        return concertDateJpaRepository.findByConcertDateIdAndConcertInfo_concertId(concertDateId, concertId);
     }
 
     @Override
     public boolean existsConcertDateByConcertId(Long concertId) {
         return concertDateJpaRepository.existsConcertDateByConcertInfo_ConcertId(concertId);
+    }
+
+    public void deleteAll() {
+        placeJpaRepository.deleteAllInBatch();
+        concertJpaRepository.deleteAllInBatch();
+        concertDateJpaRepository.deleteAllInBatch();
+        seatJpaRepository.deleteAllInBatch();
+        reservationJpaRepository.deleteAllInBatch();
     }
 
 }

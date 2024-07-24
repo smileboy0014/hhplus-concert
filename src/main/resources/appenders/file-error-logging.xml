@@ -1,0 +1,8 @@
+<included>
+    <springProfile name="file-error-logging">
+        <include resource="appenders/error-appender.xml"/>
+        <root level="WARN">
+            <appender-ref ref="ERROR"/>
+        </root>
+    </springProfile>
+</included>

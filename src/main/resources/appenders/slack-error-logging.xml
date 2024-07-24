@@ -1,0 +1,15 @@
+<included>
+    <springProfile name="slack-error-logging">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <include resource="appenders/slack-appender.xml"/>
+        <appender name="ASYNC-SLACK" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="SLACK"/>
+        </appender>
+        <root level="ERROR">
+            <appender-ref ref="ASYNC-SLACK"/>
+            <appender-ref ref="SLACK"/>
+        </root>
+    </springProfile>
+</included>
