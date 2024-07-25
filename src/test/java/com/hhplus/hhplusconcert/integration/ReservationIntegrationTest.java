@@ -1,27 +1,51 @@
 package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
+import com.hhplus.hhplusconcert.domain.concert.ConcertRepository;
+import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
+import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
+import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationDto;
+import com.hhplus.hhplusconcert.support.redis.RedisSpinLockService;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
+import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus;
 import static com.hhplus.hhplusconcert.interfaces.controller.reservation.ReservationController.SUCCESS_CANCEL_RESERVATION;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ReservationIntegrationTest extends BaseIntegrationTest {
 
-
     @Autowired
     private ReservationFacade reservationFacade;
 
     @Autowired
+    private ConcertRepository concertRepository;
+
+    @Autowired
     private TestDataHandler testDataHandler;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    RedisSpinLockService redisSpinLockService;
 
     private static final String PATH = "/api/v1/reservations";
 
@@ -56,7 +80,7 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
                 .concertId(1L)
                 .concertDateId(1L)
                 .userId(1L)
-                .seatNumber(35)
+                .seatNumber(31)
                 .build();
 
         //when
@@ -138,6 +162,9 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
     void cancelReservation() {
         //given
         long reservationId = 1L;
+        testDataHandler.settingUser(BigDecimal.ZERO);
+        testDataHandler.reserveSeat(1L, 46);
+
 
         // when
         ExtractableResponse<Response> result = delete(LOCAL_HOST + port + PATH + "/" + reservationId);
@@ -167,4 +194,58 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
                     .contains(RESERVATION_IS_NOT_FOUND.name());
         });
     }
+
+    @Test
+    @DisplayName("1000명의 유저가 동시에 예약 신청을 하면 한 명만 예약에 성공하고, 나머지는 예외를 반환한다.")
+    void reserveSeatWhenConcurrency1000EnvWithLock() throws InterruptedException {
+        //given
+        concertRepository.deleteAllReservation();
+
+        int numThreads = 1000;
+        int expectSuccessCnt = 1;
+        int expectFailCnt = 999;
+        for (int i = 0; i < 1000; i++) testDataHandler.settingUser(BigDecimal.ZERO);
+        List<User> users = userRepository.getUsers();
+        Queue<Long> userIds = new ConcurrentLinkedDeque<>();
+
+        for (User user : users) {
+            userIds.add(user.getUserId());
+        }
+
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger failCount = new AtomicInteger();
+
+        //when
+        for (int i = 0; i < numThreads; i++) {
+            executorService.execute(() -> {
+                try {
+                    ReservationCommand.Create command = new ReservationCommand.Create(1L, 1L,
+                            49, userIds.poll());
+                    reservationFacade.reserveSeat(command);
+                    successCount.getAndIncrement();
+                } catch (RuntimeException e) {
+                    failCount.getAndIncrement();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        executorService.shutdown();
+
+        List<ConcertReservationInfo> result = concertRepository.getReservations();
+
+        // then
+        assertSoftly(softly -> {
+            softly.assertThat(result).hasSize(1);
+            softly.assertThat(result.get(0).getStatus()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
+            softly.assertThat(successCount.get()).isEqualTo(expectSuccessCnt);
+            softly.assertThat(failCount.get()).isEqualTo(expectFailCnt);
+        });
+    }
 }
+
+
