@@ -29,7 +29,10 @@ public class Seat {
 
     private TicketClass ticketClass; // S > A > B > C
 
+    private int version;
+
     private LocalDateTime createdAt;
+
 
     public enum SeatStatus {
         AVAILABLE, // 이용 가능

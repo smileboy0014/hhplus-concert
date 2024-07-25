@@ -51,7 +51,10 @@ public enum ErrorCode {
     NOT_EXIST_IN_WAITING_QUEUE("대기열에 토큰이 존재하지 않습니다."),
     TOKEN_IS_NOT_ACTIVE("아직 활성화 되지 않은 토큰입니다."),
     TOKEN_IS_NOT_YET("토큰 만료대상이 아닙니다."),
-    ALREADY_TOKEN_IS_ACTIVE("이미 활성화된 토큰입니다.");
+    ALREADY_TOKEN_IS_ACTIVE("이미 활성화된 토큰입니다."),
+
+    // Lock 관련
+    LOCK_ACQUIRE_FAILED("Lock을 획득하는데 실패하였습니다");
 
 
     private final String msg;
