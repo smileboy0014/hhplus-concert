@@ -2,7 +2,10 @@ package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
+import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.domain.queue.command.TokenCommand;
 import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.TokenDto;
@@ -14,6 +17,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.ALREADY_TOKEN_IS_ACTIVE;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_IS_NOT_FOUND;
@@ -23,6 +33,12 @@ class WaitingQueueIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private WaitingQueueFacade waitingQueueFacade;
+
+    @Autowired
+    private WaitingQueueRepository waitingQueueRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TestDataHandler testDataHandler;
@@ -172,5 +188,51 @@ class WaitingQueueIntegrationTest extends BaseIntegrationTest {
             softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
                     .contains(ALREADY_TOKEN_IS_ACTIVE.name());
         });
+    }
+
+    @Test
+    @DisplayName("동시에 1000명의 유저들이 토큰을 발급받으면 50명만 active 토큰으로 활성화되고, 나머지는 다 waiting 상태의 토큰을 받는다.")
+    void checkQueueWhenConcurrency1000EnvWithLock() throws InterruptedException {
+        //given
+        int numThreads = 1000;
+
+        for (long i = 0; i < 100; i++) testDataHandler.settingUser(BigDecimal.ZERO);
+
+        List<User> users = userRepository.getUsers();
+        Queue<Long> userIds = new ConcurrentLinkedDeque<>();
+
+        for (User user : users) {
+            userIds.add(user.getUserId());
+        }
+
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger failCount = new AtomicInteger();
+
+        //when
+        for (int i = 0; i < numThreads; i++) {
+            executorService.execute(() -> {
+                try {
+                    TokenCommand.Create command = new TokenCommand.Create(userIds.poll());
+                    waitingQueueFacade.issueToken(command);
+                    successCount.getAndIncrement();
+                } catch (RuntimeException e) {
+                    failCount.getAndIncrement();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+
+        long result = waitingQueueRepository.getActiveCnt();
+
+        // then
+        assertSoftly(softly -> softly.assertThat(result).isEqualTo(50));
     }
 }

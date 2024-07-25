@@ -3,6 +3,7 @@ package com.hhplus.hhplusconcert.domain.queue;
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
 import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import com.hhplus.hhplusconcert.support.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class WaitingQueueService {
      * @return WaitingQueueResponse 대기열 정보를 반환한다.
      */
     @Transactional
+    @DistributedLock(key = "'waitingQueueLock'")
     public WaitingQueue enterQueue(User user, String token) {
         // 현재 활성 유저 수 확인
         long activeTokenCnt = waitingQueueRepository.getActiveCnt();
