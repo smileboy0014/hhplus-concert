@@ -55,10 +55,6 @@ class ConcertServiceTest {
 
         List<Concert> concerts = List.of(concert1, concert2);
 
-        List<ConcertDate> concertDates = List.of(ConcertDate.builder()
-                .concertDate("2024-06-25")
-                .build());
-
         when(concertRepository.getConcerts()).thenReturn(concerts);
 
         //when
@@ -251,10 +247,10 @@ class ConcertServiceTest {
 
         when(concertRepository.checkAlreadyReserved(command.concertId(), command.concertDateId(),
                 command.seatNumber())).thenReturn(false);
-        when(concertRepository.getDateForReservation(command.concertDateId(),
+        when(concertRepository.getAvailableDates(command.concertDateId(),
                 command.concertId())).thenReturn(Optional.of(concertDate));
         when(concertValidator.checkExistConcertDate(Optional.ofNullable(any()), any(Long.class))).thenReturn(concertDate);
-        when(concertRepository.getSeatForReservation(command.concertDateId(),
+        when(concertRepository.getAvailableSeats(command.concertDateId(),
                 command.seatNumber())).thenReturn(Optional.of(seat));
         when(concertValidator.checkExistSeat(Optional.ofNullable(any()), any(String.class))).thenReturn(seat);
         when(concertRepository.saveSeat(seat)).thenReturn(Optional.ofNullable(afterSeat));
@@ -319,7 +315,7 @@ class ConcertServiceTest {
 
         when(concertRepository.checkAlreadyReserved(command.concertId(), command.concertDateId(),
                 command.seatNumber())).thenReturn(false);
-        when(concertRepository.getDateForReservation(command.concertDateId(),
+        when(concertRepository.getAvailableDates(command.concertDateId(),
                 command.concertId())).thenReturn(Optional.empty());
         when(concertValidator.checkExistConcertDate(any(), any()))
                 .thenThrow(new CustomException(CONCERT_DATE_IS_NOT_FOUND, CONCERT_DATE_IS_NOT_FOUND.getMsg()));

@@ -104,13 +104,13 @@ public class ConcertService {
                 command.seatNumber());
         concertValidator.checkAlreadyReserved(checkedReservation, command.concertDateId(), command.seatNumber());
         // 2. concertDate 정보 조회
-        Optional<ConcertDate> dateForReservation = concertRepository.getDateForReservation(command.concertDateId(),
+        Optional<ConcertDate> availableDates = concertRepository.getAvailableDates(command.concertDateId(),
                 command.concertId());
-        ConcertDate concertDate = concertValidator.checkExistConcertDate(dateForReservation, command.concertDateId());
-        // 3. seat 상태 변경
-        Optional<Seat> seatForReservation = concertRepository.getSeatForReservation(command.concertDateId(),
+        ConcertDate concertDate = concertValidator.checkExistConcertDate(availableDates, command.concertDateId());
+        // 3. 좌석 점유
+        Optional<Seat> availableSeats = concertRepository.getAvailableSeats(command.concertDateId(),
                 command.seatNumber());
-        Seat seat = concertValidator.checkExistSeat(seatForReservation, "예약 가능한 좌석이 존재하지 않습니다.");
+        Seat seat = concertValidator.checkExistSeat(availableSeats, "예약 가능한 좌석이 존재하지 않습니다.");
         seat.occupy();
         concertRepository.saveSeat(seat);
         // 4. 예약 테이블 저장

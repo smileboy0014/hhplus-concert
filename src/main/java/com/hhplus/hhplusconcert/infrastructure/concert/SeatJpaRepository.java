@@ -36,4 +36,5 @@ public interface SeatJpaRepository extends JpaRepository<SeatEntity, Long> {
     boolean existsByConcertDateInfo_concertDateIdAndStatus(Long concertDateId, Seat.SeatStatus status);
 
     void deleteAllInBatch();
+
 }

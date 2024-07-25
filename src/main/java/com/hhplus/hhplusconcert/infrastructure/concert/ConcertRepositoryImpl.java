@@ -96,7 +96,7 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public Optional<ConcertDate> getDateForReservation(Long concertDateId, Long concertId) {
+    public Optional<ConcertDate> getAvailableDates(Long concertDateId, Long concertId) {
         Optional<ConcertDateEntity> concertDateEntity = concertDateJpaRepository
                 .findByConcertDateIdAndConcertInfo_concertId(concertDateId, concertId);
 
@@ -107,9 +107,16 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
-    public Optional<Seat> getSeatForReservation(Long concertDateId, int seatNumber) {
+    public Optional<Seat> getAvailableSeats(Long concertDateId, int seatNumber) {
+
+        // 락을 안걸었을 때
         Optional<SeatEntity> seatEntity = seatJpaRepository
                 .findByConcertDateInfo_concertDateIdAndSeatNumber(concertDateId, seatNumber);
+
+        //비관적 락
+//        Optional<SeatEntity> seatEntity = seatJpaRepository
+//                .findSeatWithPessimisticLock(concertDateId, seatNumber);
+
 
         if (seatEntity.isPresent()) {
             return seatEntity.map(SeatEntity::toDomain);
@@ -146,6 +153,11 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     }
 
     @Override
+    public void deleteAllReservation() {
+        reservationJpaRepository.deleteAllInBatch();
+    }
+
+    @Override
     public Optional<Seat> getSeat(Long seatId) {
         Optional<SeatEntity> seatEntity = seatJpaRepository.findById(seatId);
 
@@ -170,6 +182,13 @@ public class ConcertRepositoryImpl implements ConcertRepository {
 
         return reservationEntities.stream()
                 .map(ConcertReservationEntity::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ConcertReservationInfo> getReservations() {
+        return reservationJpaRepository.findAll()
+                .stream().map(ConcertReservationEntity::toDomain)
                 .toList();
     }
 

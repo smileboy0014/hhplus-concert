@@ -5,6 +5,7 @@ import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,6 +28,14 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> saveUser(User user) {
         UserEntity userEntity = userJpaRepository.save(UserEntity.toEntity(user));
         return Optional.of(userEntity.toDomain());
+    }
+
+    @Override
+    public List<User> getUsers() {
+        return userJpaRepository.findAll()
+                .stream()
+                .map(UserEntity::toDomain)
+                .toList();
     }
 
     @Override

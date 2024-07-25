@@ -24,14 +24,11 @@ public interface ConcertRepository {
 
     List<Seat> saveSeats(List<Seat> seats);
 
-
-    void deleteAll();
-
     boolean checkAlreadyReserved(Long concertId, Long concertDateId, int seatNumber);
 
-    Optional<ConcertDate> getDateForReservation(Long concertDateId, Long concertId);
+    Optional<ConcertDate> getAvailableDates(Long concertDateId, Long concertId);
 
-    Optional<Seat> getSeatForReservation(Long concertDateId, int seatNumber);
+    Optional<Seat> getAvailableSeats(Long concertDateId, int seatNumber);
 
     Optional<ConcertReservationInfo> saveReservation(ConcertReservationInfo build);
 
@@ -39,11 +36,17 @@ public interface ConcertRepository {
 
     Optional<ConcertReservationInfo> getReservation(Long reservationId);
 
+    void deleteAllReservation();
+
 
     Optional<Seat> getSeat(Long seatId);
 
     Optional<Seat> saveSeat(Seat seat);
 
     List<ConcertReservationInfo> getAllTempReservation();
+
+    List<ConcertReservationInfo> getReservations();
+
+    void deleteAll();
 
 }
