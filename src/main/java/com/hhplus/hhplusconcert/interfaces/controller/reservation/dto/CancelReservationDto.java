@@ -9,7 +9,7 @@ public class CancelReservationDto {
     @Builder(toBuilder = true)
     public record Request(@NotNull Long userId) {
 
-        public CancelReservationCommand.Delete toDeleteCommand(Long reservationId){
+        public CancelReservationCommand.Delete toDeleteCommand(Long reservationId) {
             return new CancelReservationCommand.Delete(reservationId, userId);
         }
 

@@ -9,7 +9,6 @@ import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationDto;
-import com.hhplus.hhplusconcert.support.redis.RedisSpinLockService;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
@@ -46,8 +45,6 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    RedisSpinLockService redisSpinLockService;
 
     private static final String PATH = "/api/v1/reservations";
 

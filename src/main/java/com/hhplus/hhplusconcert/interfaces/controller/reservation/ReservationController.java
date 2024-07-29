@@ -70,7 +70,7 @@ public class ReservationController {
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class)))
     @DeleteMapping("/{reservationId}")
     public ApiResultResponse<String> cancelReservation(@PathVariable(name = "reservationId") @NotNull Long reservationId,
-                                                        @Valid CancelReservationDto.Request request) {
+                                                       @Valid CancelReservationDto.Request request) {
         reservationFacade.cancelReservation(request.toDeleteCommand(reservationId));
 
         return ApiResultResponse.ok(SUCCESS_CANCEL_RESERVATION);

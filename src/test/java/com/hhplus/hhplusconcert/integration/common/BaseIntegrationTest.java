@@ -115,7 +115,7 @@ public class BaseIntegrationTest {
                 .then().log().all().extract();
     }
 
-    public static <T> ExtractableResponse<Response> delete(String path,  Map<String, ?> parameters) {
+    public static <T> ExtractableResponse<Response> delete(String path, Map<String, ?> parameters) {
         return RestAssured
                 .given().log().all()
                 .queryParams(parameters)
