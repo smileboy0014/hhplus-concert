@@ -8,6 +8,8 @@ import com.hhplus.hhplusconcert.domain.payment.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.UserService;
+import com.hhplus.hhplusconcert.domain.user.command.UserCommand;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PaymentDto;
@@ -20,10 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
@@ -50,6 +49,9 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private PaymentFacade paymentFacade;
+
+    @Autowired
+    private UserService userService;
 
 
     @Test
@@ -144,7 +146,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
     @Test
     @DisplayName("한명의 유저가 동시에 1000개의 결제를 진행하면 한번만 결제가 성공하고 포인트가 차감되야 한다.")
-    void payWhenConcurrency1000EnvWithLock() throws InterruptedException {
+    void payWhenConcurrency500EnvWithLock() throws InterruptedException {
         //given
         int numThreads = 500;
         int expectSuccessCnt = 1;
@@ -241,6 +243,29 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
             softly.assertThat(successCount.get()).isEqualTo(expectSuccessCnt);
             softly.assertThat(failCount.get()).isEqualTo(expectFailCnt);
         });
+    }
+
+    @Test
+    @DisplayName("포인트 충전과 결제가 동시에 이뤄지더라도 둘다 진행이 되어야 한다.")
+    void payWithChargeAtTheSameTime() {
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(170000));
+
+        // when
+        CompletableFuture.allOf(
+                CompletableFuture.runAsync(() -> {
+                    UserCommand.Create command = new UserCommand.Create(1L, BigDecimal.valueOf(170000));
+                    userService.chargeBalance(command);
+                }),
+                CompletableFuture.runAsync(() -> userService.usePoint(1L, BigDecimal.valueOf(170000)))
+
+        ).join();
+
+
+        User result = userService.getUser(1L);
+
+        // then
+        assertSoftly(softly -> softly.assertThat(result.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(170000)));
     }
 
 }

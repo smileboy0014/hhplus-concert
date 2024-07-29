@@ -17,7 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
@@ -165,9 +167,12 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
         testDataHandler.settingUser(BigDecimal.ZERO);
         testDataHandler.reserveSeat(1L, 46);
 
+        Map<String, Long> params = new HashMap<>();
+        params.put("userId", 1L);
+
 
         // when
-        ExtractableResponse<Response> result = delete(LOCAL_HOST + port + PATH + "/" + reservationId);
+        ExtractableResponse<Response> result = delete(LOCAL_HOST + port + PATH + "/" + reservationId, params);
 
         // then
         assertSoftly(softly -> {
@@ -182,9 +187,11 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
     void cancelReservationWithNoHistory() {
         // given
         long reservationId = 100000L;
+        Map<String, Long> params = new HashMap<>();
+        params.put("userId", 1L);
 
         // when
-        ExtractableResponse<Response> result = delete(LOCAL_HOST + port + PATH + "/" + reservationId);
+        ExtractableResponse<Response> result = delete(LOCAL_HOST + port + PATH + "/" + reservationId, params);
 
         // then
         assertSoftly(softly -> {
@@ -241,6 +248,72 @@ class ReservationIntegrationTest extends BaseIntegrationTest {
         // then
         assertSoftly(softly -> {
             softly.assertThat(result).hasSize(1);
+            softly.assertThat(result.get(0).getStatus()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
+            softly.assertThat(successCount.get()).isEqualTo(expectSuccessCnt);
+            softly.assertThat(failCount.get()).isEqualTo(expectFailCnt);
+        });
+    }
+
+    @Test
+    @DisplayName("1000명의 유저가 동시에 3자리를 예약 신청을 하면 세 명만 예약에 성공하고, 나머지는 예외를 반환한다.")
+    void reserveSeatWhenConcurrency1000EnvWithLock2() throws InterruptedException {
+        concertRepository.deleteAllReservation();
+
+        int numThreads = 1000;
+        int expectSuccessCnt = 3;
+        int expectFailCnt = 997;
+        for (int i = 0; i < 1000; i++) testDataHandler.settingUser(BigDecimal.ZERO);
+
+
+        List<User> users = userRepository.getUsers();
+        Queue<Long> userIds = new ConcurrentLinkedDeque<>();
+
+        for (User user : users) {
+            userIds.add(user.getUserId());
+        }
+
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger failCount = new AtomicInteger();
+        AtomicInteger processCnt = new AtomicInteger();
+
+        //when
+        for (int i = 0; i < numThreads; i++) {
+            executorService.execute(() -> {
+                try {
+                    processCnt.getAndIncrement();
+                    if (processCnt.get() < 300) {
+                        ReservationCommand.Create command = new ReservationCommand.Create(1L, 1L,
+                                45, userIds.poll());
+                        reservationFacade.reserveSeat(command);
+                    } else if (processCnt.get() < 600) {
+                        ReservationCommand.Create command = new ReservationCommand.Create(1L, 1L,
+                                46, userIds.poll());
+                        reservationFacade.reserveSeat(command);
+                    } else {
+                        ReservationCommand.Create command = new ReservationCommand.Create(1L, 1L,
+                                47, userIds.poll());
+                        reservationFacade.reserveSeat(command);
+                    }
+                    successCount.getAndIncrement();
+
+                } catch (RuntimeException e) {
+                    failCount.getAndIncrement();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        executorService.shutdown();
+
+        List<ConcertReservationInfo> result = concertRepository.getReservations();
+
+        // then
+        assertSoftly(softly -> {
+            softly.assertThat(result).hasSize(3);
             softly.assertThat(result.get(0).getStatus()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
             softly.assertThat(successCount.get()).isEqualTo(expectSuccessCnt);
             softly.assertThat(failCount.get()).isEqualTo(expectFailCnt);

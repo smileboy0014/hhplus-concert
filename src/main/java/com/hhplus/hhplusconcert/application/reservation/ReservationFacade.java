@@ -2,10 +2,12 @@ package com.hhplus.hhplusconcert.application.reservation;
 
 import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
 import com.hhplus.hhplusconcert.domain.concert.ConcertService;
+import com.hhplus.hhplusconcert.domain.concert.command.CancelReservationCommand;
 import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
 import com.hhplus.hhplusconcert.domain.payment.Payment;
 import com.hhplus.hhplusconcert.domain.payment.PaymentService;
 import com.hhplus.hhplusconcert.domain.user.UserService;
+import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,19 +45,20 @@ public class ReservationFacade {
     /**
      * 예약 취소를 하는 유즈케이스를 실행한다.
      *
-     * @param reservationId reservationId 정보
+     * @param command reservationId, userId 정보
      */
     @Transactional
-    public void cancelReservation(Long reservationId) {
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
+    public void cancelReservation(CancelReservationCommand.Delete command) {
         // 1. 예약 취소
-        ConcertReservationInfo reservationCancelInfo = concertService.cancelReservation(reservationId);
+        ConcertReservationInfo reservationCancelInfo = concertService.cancelReservation(command.reservationId());
 
         // 2. 결제 취소 or 환불 처리
         Payment paymentCancelInfo = paymentService.cancelPayment(reservationCancelInfo);
 
         // 3. 유저 잔액 반환
         if (paymentCancelInfo.getStatus() == Payment.PaymentStatus.REFUND) {
-            userService.refund(reservationCancelInfo.getUserId(), paymentCancelInfo.getPaymentPrice());
+            userService.refund(command.userId(), paymentCancelInfo.getPaymentPrice());
         }
 
         // 4. 좌석 점유 취소

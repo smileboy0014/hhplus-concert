@@ -31,7 +31,7 @@ public class PaymentFacade {
      * @return PaymentResponse 결제 결과를 반환한다.
      */
     @Transactional
-    @DistributedLock(key = "'paymentLock'.concat(':').concat(#command.userId())")
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
     public Payment pay(PaymentCommand.Create command) {
         // 1. 예약 완료
         ConcertReservationInfo completeReservation = concertService.completeReservation(command);

@@ -2,6 +2,7 @@ package com.hhplus.hhplusconcert.domain.user;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.command.UserCommand;
+import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,7 @@ public class UserService {
      * @return UserResponse 유저의 잔액 정보를 반환한다.
      */
     @Transactional
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
     public User chargeBalance(UserCommand.Create command) {
         User user = getUser(command.userId());
 

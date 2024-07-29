@@ -3,10 +3,10 @@ package com.hhplus.hhplusconcert.application;
 import com.hhplus.hhplusconcert.application.concert.ConcertFacade;
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
 import com.hhplus.hhplusconcert.domain.concert.*;
+import com.hhplus.hhplusconcert.domain.concert.command.CancelReservationCommand;
 import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
 import com.hhplus.hhplusconcert.domain.payment.Payment;
 import com.hhplus.hhplusconcert.domain.payment.PaymentService;
-import com.hhplus.hhplusconcert.domain.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,8 +29,6 @@ class ConcertFacadeTest {
     private ConcertService concertService;
     @Mock
     private PaymentService paymentService;
-    @Mock
-    private UserService userService;
 
     @InjectMocks
     private ConcertFacade concertFacade;
@@ -187,8 +185,10 @@ class ConcertFacadeTest {
         when(concertService.cancelReservation(reservation.getReservationId())).thenReturn(reservation);
         when(paymentService.cancelPayment(reservation)).thenReturn(payment);
 
+        CancelReservationCommand.Delete command = new CancelReservationCommand.Delete(1L, 1L);
+
         // when
-        reservationFacade.cancelReservation(reservation.getReservationId());
+        reservationFacade.cancelReservation(command);
 
         // then
         verify(concertService).cancelReservation(reservation.getReservationId());

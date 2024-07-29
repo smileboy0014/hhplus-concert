@@ -2,6 +2,7 @@ package com.hhplus.hhplusconcert.interfaces.controller.reservation;
 
 import com.hhplus.hhplusconcert.application.reservation.ReservationFacade;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
+import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.CancelReservationDto;
 import com.hhplus.hhplusconcert.interfaces.controller.reservation.dto.ReservationDto;
 import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,8 +69,9 @@ public class ReservationController {
     @Operation(summary = "예약 취소")
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class)))
     @DeleteMapping("/{reservationId}")
-    public ApiResultResponse<String> cancelReservation(@PathVariable(name = "reservationId") @NotNull Long reservationId) {
-        reservationFacade.cancelReservation(reservationId);
+    public ApiResultResponse<String> cancelReservation(@PathVariable(name = "reservationId") @NotNull Long reservationId,
+                                                        @Valid CancelReservationDto.Request request) {
+        reservationFacade.cancelReservation(request.toDeleteCommand(reservationId));
 
         return ApiResultResponse.ok(SUCCESS_CANCEL_RESERVATION);
     }
