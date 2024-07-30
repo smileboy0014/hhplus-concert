@@ -114,7 +114,7 @@ public class ConcertService {
         seat.occupy();
         concertRepository.saveSeat(seat);
         // 4. 예약 테이블 저장
-        ConcertReservationInfo reservationInfo = ConcertReservationInfo.toReservationDomain(command, seat, concertDate);
+        ConcertReservationInfo reservationInfo = command.toReservationDomain(seat, concertDate);
 
         return concertValidator.checkSavedReservation(concertRepository.saveReservation(reservationInfo), "예약에 실패하였습니다");
     }

@@ -1,7 +1,6 @@
 package com.hhplus.hhplusconcert.domain.concert;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
-import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -46,22 +45,6 @@ public class ConcertReservationInfo {
         TEMPORARY_RESERVED, // 임시 예약 완료
         CANCEL // 예약 취소
 
-    }
-
-    public static ConcertReservationInfo toReservationDomain(ReservationCommand.Create command,
-                                                             Seat seatForReservation,
-                                                             ConcertDate dateForReservation) {
-
-        return ConcertReservationInfo.builder()
-                .concertId(command.concertId())
-                .concertDateId(command.concertDateId())
-                .userId(command.userId())
-                .seatId(seatForReservation.getSeatId())
-                .concertName(dateForReservation.getConcert().getName())
-                .concertDate(dateForReservation.getConcertDate())
-                .seatNumber(seatForReservation.getSeatNumber())
-                .seatPrice(seatForReservation.getPrice())
-                .build();
     }
 
     public void complete() {
