@@ -63,6 +63,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         PaymentDto.Request request = PaymentDto.Request.builder()
                 .reservationId(1L)
                 .userId(1L)
+                .token("jwt-token")
                 .build();
 
         // when
@@ -86,6 +87,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         PaymentDto.Request request = PaymentDto.Request.builder()
                 .reservationId(1L)
                 .userId(1L)
+                .token("jwt-token")
                 .build();
 
         // when
@@ -107,6 +109,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         PaymentDto.Request request = PaymentDto.Request.builder()
                 .reservationId(1L)
                 .userId(1L)
+                .token("jwt-token")
                 .build();
 
         // when
@@ -130,6 +133,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         PaymentDto.Request request = PaymentDto.Request.builder()
                 .reservationId(1L)
                 .userId(1L)
+                .token("jwt-token")
                 .build();
 
         // when
@@ -164,7 +168,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         for (int i = 0; i < numThreads; i++) {
             executorService.execute(() -> {
                 try {
-                    PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L);
+                    PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L, "jwt-token");
                     paymentFacade.pay(command);
                     successCount.getAndIncrement();
                 } catch (RuntimeException e) {
@@ -218,7 +222,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
             executorService.execute(() -> {
                 try {
                     PaymentCommand.Create command = new PaymentCommand.Create(reservationIds.poll(),
-                            1L);
+                            1L,"jwt-token");
                     paymentFacade.pay(command);
                     successCount.getAndIncrement();
                 } catch (RuntimeException e) {

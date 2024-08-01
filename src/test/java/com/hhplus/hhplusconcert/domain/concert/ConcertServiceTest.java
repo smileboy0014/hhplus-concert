@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +19,6 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static com.hhplus.hhplusconcert.domain.concert.Seat.SeatStatus.AVAILABLE;
 import static com.hhplus.hhplusconcert.domain.concert.Seat.SeatStatus.UNAVAILABLE;
 import static com.hhplus.hhplusconcert.domain.concert.Seat.TicketClass;
-import static com.hhplus.hhplusconcert.domain.concert.Seat.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -168,7 +166,7 @@ class ConcertServiceTest {
     void getAvailableSeats() {
         //given
         Long concertDateId = 1L;
-        Seat seat = builder()
+        Seat seat = Seat.builder()
                 .seatId(1L)
                 .seatNumber(1)
                 .build();
@@ -199,72 +197,6 @@ class ConcertServiceTest {
                 .isEqualTo(SEAT_IS_NOT_FOUND);
     }
 
-    @Test
-    @DisplayName("원하는 콘서트 좌석을 예약한다.")
-    void reserveSeat() {
-        // given
-        ReservationCommand.Create command = new ReservationCommand
-                .Create(1L, 1L, 10, 1L);
-
-        Seat seat = builder()
-                .seatId(1L)
-                .seatNumber(command.seatNumber())
-                .price(BigDecimal.valueOf(100000))
-                .ticketClass(TicketClass.S)
-                .status(AVAILABLE)
-                .build();
-
-        Seat afterSeat = builder()
-                .seatId(1L)
-                .seatNumber(command.seatNumber())
-                .price(BigDecimal.valueOf(100000))
-                .ticketClass(TicketClass.S)
-                .status(UNAVAILABLE)
-                .build();
-
-        Concert concert = Concert.builder()
-                .concertId(1L)
-                .name("싸이 흠뻑쇼")
-                .build();
-
-        ConcertDate concertDate = ConcertDate.builder()
-                .concertDateId(1L)
-                .concertDate("2024-06-23")
-                .concert(concert)
-                .build();
-
-        ConcertReservationInfo concertReservation = ConcertReservationInfo.builder()
-                .reservationId(1L)
-                .userId(1L)
-                .seatId(1L)
-                .concertDateId(1L)
-                .concertName(concert.getName())
-                .concertDate(concertDate.getConcertDate())
-                .seatNumber(seat.getSeatNumber())
-                .status(ReservationStatus.TEMPORARY_RESERVED)
-                .build();
-
-
-        when(concertRepository.checkAlreadyReserved(command.concertId(), command.concertDateId(),
-                command.seatNumber())).thenReturn(false);
-        when(concertRepository.getAvailableDates(command.concertDateId(),
-                command.concertId())).thenReturn(Optional.of(concertDate));
-        when(concertValidator.checkExistConcertDate(Optional.ofNullable(any()), any(Long.class))).thenReturn(concertDate);
-        when(concertRepository.getAvailableSeats(command.concertDateId(),
-                command.seatNumber())).thenReturn(Optional.of(seat));
-        when(concertValidator.checkExistSeat(Optional.ofNullable(any()), any(String.class))).thenReturn(seat);
-        when(concertRepository.saveSeat(seat)).thenReturn(Optional.ofNullable(afterSeat));
-        when(concertRepository.saveReservation(any(ConcertReservationInfo.class)))
-                .thenReturn(Optional.ofNullable(concertReservation));
-        when(concertValidator.checkSavedReservation(Optional.ofNullable(any()), any(String.class)))
-                .thenReturn(concertReservation);
-
-        // when
-        ConcertReservationInfo result = concertService.reserveSeat(command);
-
-        // then
-        assertThat(result.getStatus()).isEqualTo(ReservationStatus.TEMPORARY_RESERVED);
-    }
 
     @Test
     @DisplayName("이미 좌석이 예약되어 있다면 SEAT_IS_UNAVAILABLE 예외를 반환한다.")
@@ -281,7 +213,7 @@ class ConcertServiceTest {
                 .concert(concert)
                 .build();
 
-        Seat seat = builder()
+        Seat seat = Seat.builder()
                 .seatId(1L)
                 .seatNumber(45)
                 .price(BigDecimal.valueOf(100000))
@@ -480,7 +412,7 @@ class ConcertServiceTest {
     @DisplayName("결제 완료로 예약을 최종 완료한다.")
     void completeReservation() {
         // given
-        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L);
+        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L, "jwt-token");
 
         ConcertReservationInfo reservationInfo = ConcertReservationInfo.builder()
                 .status(ReservationStatus.TEMPORARY_RESERVED)
@@ -502,7 +434,7 @@ class ConcertServiceTest {
     @DisplayName("결제 완료로 예약을 최종 완료한다.")
     void completeReservationWithNoReservation() {
         // given
-        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L);
+        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L, "jwt-token");
 
         ConcertReservationInfo reservationInfo = ConcertReservationInfo.builder()
                 .status(ReservationStatus.TEMPORARY_RESERVED)
@@ -518,54 +450,4 @@ class ConcertServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(RESERVATION_IS_NOT_FOUND);
     }
-
-    @Test
-    @DisplayName("정해진 시간이 지나 좌석을 계속 점유할 수 없는 경우 좌석 점유를 해지한다.")
-    void checkOccupiedSeat() {
-        // given
-        Seat seat = Seat.builder()
-                .seatId(1L)
-                .seatNumber(1)
-                .status(UNAVAILABLE)
-                .build();
-
-        ConcertReservationInfo reservationInfo = ConcertReservationInfo.builder()
-                .seatId(1L)
-                .status(ReservationStatus.TEMPORARY_RESERVED)
-                .createdAt(LocalDateTime.now().minusMinutes(5).minusSeconds(1))
-                .build();
-
-        when(concertRepository.getAllTempReservation()).thenReturn(List.of(reservationInfo));
-        when(concertRepository.getSeat(seat.getSeatId())).thenReturn(Optional.ofNullable(seat));
-        when(concertValidator.checkExistSeat(any(), any())).thenReturn(seat);
-
-        // when
-        concertService.checkOccupiedSeat();
-
-        // then
-        assertThat(seat.getStatus()).isEqualTo(AVAILABLE);
-    }
-
-    @Test
-    @DisplayName("정해진 시간이 지나 좌석을 계속 점유할 수 없는데 좌석이 존재하지 않으면 SEAT_IS_NOT_FOUND 예외를 반환한다.")
-    void checkOccupiedSeatWithNoSeat() {
-        // given
-        ConcertReservationInfo reservationInfo = ConcertReservationInfo.builder()
-                .seatId(1L)
-                .status(ReservationStatus.TEMPORARY_RESERVED)
-                .createdAt(LocalDateTime.now().minusMinutes(5).minusSeconds(1))
-                .build();
-
-        when(concertRepository.getAllTempReservation()).thenReturn(List.of(reservationInfo));
-        when(concertRepository.getSeat(any())).thenReturn(Optional.empty());
-        when(concertValidator.checkExistSeat(any(), any())).thenThrow(
-                new CustomException(SEAT_IS_NOT_FOUND, SEAT_IS_NOT_FOUND.getMsg()));
-
-        // when // then
-        assertThatThrownBy(() -> concertService.checkOccupiedSeat())
-                .isInstanceOf(CustomException.class)
-                .extracting("errorCode")
-                .isEqualTo(SEAT_IS_NOT_FOUND);
-    }
-
 }

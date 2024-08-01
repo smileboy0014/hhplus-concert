@@ -5,7 +5,7 @@ import java.util.Optional;
 
 public interface UserRepository {
     // User 관련
-    Optional<User> getUser(Long reservationId);
+    Optional<User> getUser(Long userId);
 
     void deleteAll();
 

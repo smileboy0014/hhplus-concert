@@ -2,8 +2,9 @@ package com.hhplus.hhplusconcert.support.utils;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
-import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -35,6 +36,7 @@ public class JwtUtils {
     public static final long EXP_TIME = 60 * 60 * 1000L;
 
     private final WaitingQueueRepository waitingQueueRepository;
+    private final UserRepository userRepository;
 
     /**
      * 토큰을 생성한다.
@@ -102,32 +104,21 @@ public class JwtUtils {
      * @param token JWT 토큰 정보
      */
     private void changeTokenStatus(String token) {
-        Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(token);
-
-        if (tokenInfo.isPresent()) {
-            tokenInfo.get().expire();
-            waitingQueueRepository.saveQueue(tokenInfo.get());
-        }
+        waitingQueueRepository.deleteExpiredToken(token);
     }
 
     /**
      * WaitingQueue 에 있는 토큰 정보가 유효한지 확인한다.
      *
      * @param userId userId 정보
-     * @param token  JWT 토큰 정보
      */
-    public void validToken(Long userId, String token) {
-        // 사용자 토큰이 active 상태인지 확인
-        Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(userId, token);
+    public void validToken(Long userId) {
+        // 사용자가 존재하는지 확인
+        Optional<User> user = userRepository.getUser(userId);
 
-        if (tokenInfo.isEmpty()) {
-            throw new CustomException(ErrorCode.TOKEN_IS_NOT_FOUND,
+        if (user.isEmpty()) {
+            throw new CustomException(ErrorCode.USER_IS_NOT_FOUND,
                     "토큰을 다시 발급 받아 주세요.");
-        }
-
-        if (tokenInfo.get().getStatus() != WaitingQueue.WaitingQueueStatus.ACTIVE) {
-            throw new CustomException(ErrorCode.TOKEN_IS_NOT_ACTIVE,
-                    "토큰이 활성화 되지 않았습니다. 토큰을 다시 발급 받아 주세요.");
         }
     }
 

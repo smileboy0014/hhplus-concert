@@ -44,7 +44,7 @@ public class PaymentFacade {
                 completeReservation.getSeatPrice());
 
         // 4. 토큰 만료
-        waitingQueueService.forceExpireToken(command.userId());
+        waitingQueueService.forceExpireToken(command.token());
 
         return Payment.builder()
                 .paymentId(payment.getPaymentId())

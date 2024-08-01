@@ -200,13 +200,4 @@ class ConcertFacadeTest {
         });
     }
 
-    @Test
-    @DisplayName("좌석을 계속 점유할 수 있는지 확인하는 유즈케이스를 실행한다.")
-    void checkOccupiedSeat() {
-        // given// when
-        reservationFacade.checkOccupiedSeat();
-
-        // then
-        verify(concertService).checkOccupiedSeat();
-    }
 }

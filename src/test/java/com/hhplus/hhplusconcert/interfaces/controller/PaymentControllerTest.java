@@ -34,7 +34,7 @@ class PaymentControllerTest {
     @DisplayName("결제를 요청한다.")
     void pay() throws Exception {
         // given
-        PaymentCommand.Create command = new PaymentCommand.Create(1L, 2L);
+        PaymentCommand.Create command = new PaymentCommand.Create(1L, 2L,"jwt-token");
 
         Payment payment = Payment.builder().build();
 
