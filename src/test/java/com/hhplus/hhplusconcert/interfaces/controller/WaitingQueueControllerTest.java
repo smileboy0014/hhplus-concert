@@ -5,7 +5,6 @@ import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.WaitingQueueController;
-import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.TokenDto;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,29 +31,6 @@ class WaitingQueueControllerTest {
     @MockBean
     WaitingQueueFacade waitingQueueFacade;
 
-    @Test
-    @DisplayName("토큰 발급을 요청한다.")
-    void issueToken() throws Exception {
-        // given
-        TokenDto.Request request = TokenDto.Request.builder().userId(1L).build();
-
-        WaitingQueue waitingQueue = WaitingQueue.builder()
-                .user(User.builder().userId(1L).build())
-                .token("jwt-token")
-                .status(WaitingQueue.WaitingQueueStatus.ACTIVE)
-                .build();
-
-        when(waitingQueueFacade.issueToken(request.toCreateCommand())).thenReturn(waitingQueue);
-
-        // when // then
-        mockMvc.perform(post("/v1/queues/issue-token")
-                        .content(objectMapper.writeValueAsString(request))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(jsonPath("$.status").value("OK"))
-                .andExpect(jsonPath("$.msg").value("OK"))
-                .andExpect(jsonPath("$.data").isNotEmpty());
-    }
 
     @Test
     @DisplayName("유저의 대기 정보를 요청한다.")
@@ -71,10 +47,10 @@ class WaitingQueueControllerTest {
                 .status(WaitingQueue.WaitingQueueStatus.WAIT)
                 .build();
 
-        when(waitingQueueFacade.checkQueue(request.toCreateCommand())).thenReturn(waitingQueue);
+        when(waitingQueueFacade.checkWaiting(request.toCreateCommand())).thenReturn(waitingQueue);
 
         // then
-        mockMvc.perform(post("/v1/queues/check")
+        mockMvc.perform(post("/v1/queues/token")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

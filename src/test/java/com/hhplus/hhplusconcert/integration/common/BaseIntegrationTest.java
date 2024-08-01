@@ -1,6 +1,8 @@
 package com.hhplus.hhplusconcert.integration.common;
 
 
+import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.infrastructure.redis.RedisRepository;
 import io.restassured.RestAssured;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
@@ -24,6 +26,9 @@ public class BaseIntegrationTest {
     @Autowired
     private TestDataHandler testDataHandler;
 
+    @Autowired
+    private RedisRepository redisRepository;
+
     @LocalServerPort
     protected int port;
 
@@ -41,6 +46,7 @@ public class BaseIntegrationTest {
     void tearDown() {
         // 데이터 초기화
         dbCleaUp.execute();
+        redisRepository.clearCurrentDatabase();
     }
 
     public static ExtractableResponse<Response> get(String path) {
