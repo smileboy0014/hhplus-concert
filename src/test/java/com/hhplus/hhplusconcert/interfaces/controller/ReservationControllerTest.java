@@ -87,7 +87,8 @@ class ReservationControllerTest {
         Long reservationId = 1L;
 
         // when // then
-        mockMvc.perform(delete("/v1/reservations/%d".formatted(reservationId)))
+        mockMvc.perform(delete("/v1/reservations/%d".formatted(reservationId)).queryParam("userId",
+                        String.valueOf(1L)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))

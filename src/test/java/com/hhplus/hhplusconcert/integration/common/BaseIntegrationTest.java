@@ -115,11 +115,10 @@ public class BaseIntegrationTest {
                 .then().log().all().extract();
     }
 
-    public static <T> ExtractableResponse<Response> delete(String path, T requestBody) {
+    public static <T> ExtractableResponse<Response> delete(String path, Map<String, ?> parameters) {
         return RestAssured
                 .given().log().all()
-                .body(requestBody)
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .queryParams(parameters)
                 .when().delete(path)
                 .then().log().all().extract();
     }

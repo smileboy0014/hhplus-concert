@@ -2,10 +2,7 @@ package com.hhplus.hhplusconcert.domain.queue;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.User;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +11,7 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_I
 import static java.time.LocalDateTime.now;
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder(toBuilder = true)
 @Getter
 public class WaitingQueue {
@@ -39,7 +37,7 @@ public class WaitingQueue {
     }
 
 
-    public static long availableActiveToken(long activeTokenCnt) {
+    public static long calculateActiveCnt(long activeTokenCnt) {
 
         return WaitingQueueEnv.ACTIVE_USER_COUNT.info - activeTokenCnt;
     }
@@ -58,6 +56,13 @@ public class WaitingQueue {
         ACTIVE_USER_COUNT(50); //최대 활성화 유저 수 50명
 
         private final int info;
+    }
+
+    public static WaitingQueue toDomain(long availableActiveTokenCnt, User user, String token) {
+
+        if (availableActiveTokenCnt > 0) return WaitingQueue.toActiveDomain(user, token);
+
+        return WaitingQueue.toWaitingDomain(user, token);
     }
 
     public static WaitingQueue toActiveDomain(User user, String token) {

@@ -5,6 +5,7 @@ import com.hhplus.hhplusconcert.domain.payment.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -35,6 +36,14 @@ public class PaymentRepositoryImpl implements PaymentRepository {
             return paymentEntity.map(PaymentEntity::toDomain);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public List<Payment> getPayments() {
+        return paymentJpaRepository.findPayments()
+                .stream()
+                .map(PaymentEntity::toDomain)
+                .toList();
     }
 
     @Override

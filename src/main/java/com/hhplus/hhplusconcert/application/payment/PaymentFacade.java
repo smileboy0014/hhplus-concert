@@ -9,6 +9,7 @@ import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueService;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserService;
+import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class PaymentFacade {
      * @return PaymentResponse 결제 결과를 반환한다.
      */
     @Transactional
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
     public Payment pay(PaymentCommand.Create command) {
         // 1. 예약 완료
         ConcertReservationInfo completeReservation = concertService.completeReservation(command);

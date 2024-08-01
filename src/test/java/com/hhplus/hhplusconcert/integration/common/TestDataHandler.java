@@ -117,8 +117,8 @@ public class TestDataHandler {
     public void reserveSeats() {
         Long concertId = 1L;
         List<ConcertDate> concertDates = concertRepository.getConcertDates(concertId);
-        Seat seat1 = concertRepository.getSeatForReservation(concertDates.get(0).getConcertDateId(), 35).orElse(null);
-        Seat seat2 = concertRepository.getSeatForReservation(concertDates.get(0).getConcertDateId(), 41).orElse(null);
+        Seat seat1 = concertRepository.getAvailableSeats(concertDates.get(0).getConcertDateId(), 31).orElse(null);
+        Seat seat2 = concertRepository.getAvailableSeats(concertDates.get(0).getConcertDateId(), 32).orElse(null);
 
         ConcertReservationInfo reservation1 = ConcertReservationInfo.builder()
                 .concertId(concertId)
@@ -149,6 +149,26 @@ public class TestDataHandler {
         concertRepository.saveReservation(reservation2);
         seat2.occupy();
         concertRepository.saveSeat(seat2);
+    }
+
+    public void reserveSeat(Long userId, int seatNumber) {
+        Long concertId = 1L;
+        List<ConcertDate> concertDates = concertRepository.getConcertDates(concertId);
+        Seat seat = concertRepository.getAvailableSeats(concertDates.get(0).getConcertDateId(), seatNumber).orElse(null);
+
+        ConcertReservationInfo reservation = ConcertReservationInfo.builder()
+                .concertId(concertId)
+                .concertDateId(concertDates.get(0).getConcertDateId())
+                .concertName(concertDates.get(0).getConcert().getName())
+                .userId(userId)
+                .seatNumber(seat.getSeatNumber())
+                .seatId(seat.getSeatId())
+                .seatPrice(seat.getPrice())
+                .concertDate(DateUtils.getLocalDateTimeToString(LocalDateTime.now()))
+                .build();
+        concertRepository.saveReservation(reservation);
+        seat.occupy();
+        concertRepository.saveSeat(seat);
     }
 
 

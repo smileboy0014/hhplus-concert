@@ -40,6 +40,10 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
         default_batch_fetch_size: 500
+  data:
+    redis:
+      host: localhost
+      port: 56379
 
 ---
 spring:

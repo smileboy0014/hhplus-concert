@@ -6,6 +6,7 @@ import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT
 
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder(toBuilder = true)
 @Getter
 public class Payment {

@@ -40,19 +40,22 @@ public class SeatEntity extends BaseTimeEntity {
     @CreatedDate
     private LocalDateTime createdAt;
 
+    @Version
+    private int version; //낙관적 락 적용
+
     public static SeatEntity toEntity(Seat seat) {
 
         return SeatEntity.builder()
-                .seatId(seat.getSeatId())
+                .seatId(seat.getSeatId() != null ? seat.getSeatId() : null)
                 .concertDateInfo(ConcertDateEntity.toEntity(seat.getConcertDateInfo()))
                 .seatNumber(seat.getSeatNumber())
                 .price(seat.getPrice())
                 .status(seat.getStatus())
                 .ticketClass(seat.getTicketClass())
+                .version(seat.getVersion())
                 .createdAt(seat.getCreatedAt())
                 .build();
     }
-
 
     public Seat toDomain() {
 
@@ -63,9 +66,8 @@ public class SeatEntity extends BaseTimeEntity {
                 .price(price)
                 .status(status)
                 .ticketClass(ticketClass)
+                .version(version)
                 .createdAt(createdAt)
                 .build();
     }
-
-
 }

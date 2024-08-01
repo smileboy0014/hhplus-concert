@@ -14,7 +14,6 @@ import static java.time.LocalDateTime.now;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;

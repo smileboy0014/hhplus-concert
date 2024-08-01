@@ -1,5 +1,9 @@
 package com.hhplus.hhplusconcert.integration;
 
+import com.hhplus.hhplusconcert.application.user.UserFacade;
+import com.hhplus.hhplusconcert.domain.user.User;
+import com.hhplus.hhplusconcert.domain.user.UserRepository;
+import com.hhplus.hhplusconcert.domain.user.command.UserCommand;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.user.dto.UserBalanceDto;
@@ -10,6 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_CHARGE_AMOUNT_IS_NEGATIVE;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.USER_IS_NOT_FOUND;
@@ -17,9 +26,14 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class UserIntegrationTest extends BaseIntegrationTest {
 
-
     @Autowired
     private TestDataHandler testDataHandler;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserFacade userFacade;
 
     private static final String PATH = "/api/v1/users";
 
@@ -105,6 +119,50 @@ class UserIntegrationTest extends BaseIntegrationTest {
             softly.assertThat(result.statusCode()).isEqualTo(200);
             softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
                     .contains(USER_CHARGE_AMOUNT_IS_NEGATIVE.name());
+        });
+    }
+
+    @Test
+    @DisplayName("한명의 유저가 동시에 3번 포인트를 충전하면 3번 다 포인트가 충전되어야 한다.")
+    void payWhenConcurrency3EnvWithLock() throws InterruptedException {
+        //given
+        int numThreads = 3;
+        int expectSuccessCnt = 3;
+        int expectFailCnt = 0;
+
+        testDataHandler.settingUser(BigDecimal.ZERO);
+
+        CountDownLatch latch = new CountDownLatch(numThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger failCount = new AtomicInteger();
+
+        //when
+        for (int i = 0; i < numThreads; i++) {
+            executorService.execute(() -> {
+                try {
+                    UserCommand.Create command = new UserCommand.Create(1L, BigDecimal.valueOf(10000));
+                    userFacade.chargeBalance(command);
+                    successCount.getAndIncrement();
+                } catch (RuntimeException e) {
+                    failCount.getAndIncrement();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        List<User> result = userRepository.getUsers();
+
+        // then
+        assertSoftly(softly -> {
+            softly.assertThat(result.get(0).getBalance()).isEqualByComparingTo(BigDecimal.valueOf(30000));
+            softly.assertThat(successCount.get()).isEqualTo(expectSuccessCnt);
+            softly.assertThat(failCount.get()).isEqualTo(expectFailCnt);
         });
     }
 }
