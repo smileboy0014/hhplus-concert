@@ -1,7 +1,6 @@
 package com.hhplus.hhplusconcert.domain.queue;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
-import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import com.hhplus.hhplusconcert.support.utils.JwtUtils;
@@ -13,9 +12,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_ACTIVE_IS_NOT_EXIST;
+import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_IS_NOT_FOUND;
+
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+
 public class WaitingQueueService {
 
     private final JwtUtils jwtUtils;
@@ -47,13 +49,12 @@ public class WaitingQueueService {
         // 이미 유저의 활성화 된 토큰이 있다면 expired 시킴
         expiredIfExist(user.getUserId(), activeTokenCnt);
         // 활성화 시킬 수 있는 수 계산
-        long availableActiveTokenCnt = WaitingQueue.availableActiveToken(activeTokenCnt);
+        long availableActiveTokenCnt = WaitingQueue.calculateActiveCnt(activeTokenCnt);
         // 토큰 정보 저장
-        WaitingQueue queue = availableActiveTokenCnt > 0 ? WaitingQueue.toActiveDomain(user, token)
-                : WaitingQueue.toWaitingDomain(user, token);
+        WaitingQueue waitingToken = WaitingQueue.toDomain(availableActiveTokenCnt, user, token);
 
-        Optional<WaitingQueue> waitingToken = waitingQueueRepository.saveQueue(queue);
-        WaitingQueue waitingTokenInfo = waitingQueueValidator.checkSavedQueue(waitingToken);
+        Optional<WaitingQueue> savedWaitingToken = waitingQueueRepository.saveQueue(waitingToken);
+        WaitingQueue waitingTokenInfo = waitingQueueValidator.checkSavedQueue(savedWaitingToken);
 
         // 만약 활성화 된 토큰이 아니라면 대기열 정보 생성
         if (waitingTokenInfo.getStatus() == WaitingQueue.WaitingQueueStatus.WAIT) {
@@ -70,13 +71,14 @@ public class WaitingQueueService {
      * @param (userId,token) userId, token 정보
      * @return WaitingQueueResponse 대기열 정보를 반환한다.
      */
+    @Transactional(readOnly = true)
     public WaitingQueue checkQueue(Long userId, String token) {
 
         // 1. 토큰 정보 확인
         Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(userId, token);
 
         if (tokenInfo.isEmpty()) {
-            throw new CustomException(ErrorCode.TOKEN_IS_NOT_FOUND,
+            throw new CustomException(TOKEN_IS_NOT_FOUND,
                     "토큰 정보를 찾을 수 없습니다");
         }
         // 2. 토큰이 활성화 상태인지 확인
@@ -115,19 +117,18 @@ public class WaitingQueueService {
         // 1. 활성 유저 수 확인
         if (activeTokenCnt == null) activeTokenCnt = waitingQueueRepository.getActiveCnt();
 
-        long availableActiveTokenCnt = WaitingQueue.availableActiveToken(activeTokenCnt);
-        // 2. 활성화 가능 여부 확인
-        if (availableActiveTokenCnt > 0) {
-            // 2-1 대기열에 있는 유저 토큰 조회
-            List<WaitingQueue> waitingTokens = waitingQueueRepository.getWaitingTokens();
-            // 2-2 활성화 할 수 있는 만큼 활성화 진행
-            waitingTokens.stream()
-                    .limit(availableActiveTokenCnt)
-                    .forEach(waitingQueue -> {
-                        waitingQueue.active();
-                        waitingQueueRepository.saveQueue(waitingQueue);
-                    });
-        }
+        long availableActiveTokenCnt = WaitingQueue.calculateActiveCnt(activeTokenCnt);
+
+        if (availableActiveTokenCnt == 0) throw new CustomException(TOKEN_ACTIVE_IS_NOT_EXIST, "활성화 시킬 토큰이 존재하지 않습니다.");
+        // 2-1 대기열에 있는 유저 토큰 조회
+        List<WaitingQueue> waitingTokens = waitingQueueRepository.getWaitingTokens();
+        // 2-2 활성화 할 수 있는 만큼 활성화 진행
+        waitingTokens.stream()
+                .limit(availableActiveTokenCnt)
+                .forEach(waitingQueue -> {
+                    waitingQueue.active();
+                    waitingQueueRepository.saveQueue(waitingQueue);
+                });
     }
 
     /**

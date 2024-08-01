@@ -14,7 +14,6 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserService {
 
 
@@ -26,7 +25,7 @@ public class UserService {
      * @param userId userId 정보
      * @return UserResponse 유저의 잔액 정보를 반환한다.
      */
-
+    @Transactional(readOnly = true)
     public User getUser(Long userId) {
         Optional<User> user = userRepository.getUser(userId);
 
