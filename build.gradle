@@ -53,10 +53,13 @@ dependencies {
 
     testImplementation 'io.rest-assured:rest-assured:5.1.1'
 
-    //redis
+    // redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // Redisson
     implementation 'org.redisson:redisson-spring-boot-starter:3.22.1'
+    // cache
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
 
 

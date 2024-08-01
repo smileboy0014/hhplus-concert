@@ -1,29 +1,55 @@
 package com.hhplus.hhplusconcert.domain.concert;
 
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
+import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
 import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RBlockingQueue;
+import org.redisson.api.RDelayedQueue;
+import org.redisson.api.RedissonClient;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus.TEMPORARY_RESERVED;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ConcertService {
 
     private final ConcertRepository concertRepository;
     private final ConcertValidator concertValidator;
+    private RBlockingQueue<ConcertReservationInfo> tempReservationQueue;
+    private RDelayedQueue<ConcertReservationInfo> delayedReservationQueue;
+    private final RedissonClient redissonClient;
+
+    @PostConstruct
+    @Profile("!test") // Only run this in non-test profiles
+    public void init() {
+        cancelOccupiedSeatListener();
+
+        tempReservationQueue = redissonClient.getBlockingQueue("tempReservationQueue");
+        delayedReservationQueue = redissonClient.getDelayedQueue(tempReservationQueue);
+    }
 
     /**
      * 콘서트 정보를 요청하면 콘서트 정보를 반환한다.
      *
      * @return 콘서트 정보를 반환한다.
      */
+    @Caching(cacheable = {
+            @Cacheable(cacheManager = "l1LocalCacheManager", cacheNames = "concerts", value = "concerts"),
+            @Cacheable(cacheManager = "l2RedisCacheManager", cacheNames = "concerts", value = "concerts")
+    })
+    @Transactional(readOnly = true)
     public List<Concert> getConcerts() {
         List<Concert> concerts = concertRepository.getConcerts();
 
@@ -44,6 +70,7 @@ public class ConcertService {
      * @param concertId concertId 정보
      * @return 콘서트 상세 정보 반환
      */
+    @Transactional(readOnly = true)
     public Concert getConcert(Long concertId) {
         List<ConcertDate> concertDates = concertRepository.getConcertDates(concertId);
         concertValidator.existConcert(concertId, concertDates);
@@ -62,6 +89,7 @@ public class ConcertService {
      * @param concertId concertId 정보
      * @return 콘서트 예약 날짜 정보를 반환한다.
      */
+    @Transactional(readOnly = true)
     public List<ConcertDate> getAvailableConcertDates(Long concertId) {
         List<ConcertDate> concertDates = concertRepository.getConcertDates(concertId);
         concertValidator.existAvailableConcertDates(concertId, concertDates);
@@ -84,6 +112,7 @@ public class ConcertService {
      * @param concertDateId concertDateId 정보
      * @return 예약 가능한 좌석 정보를 반환한다.
      */
+    @Transactional(readOnly = true)
     public List<Seat> getAvailableSeats(Long concertDateId) {
         List<Seat> availableSeats = concertRepository.getAvailableSeats(concertDateId);
         concertValidator.existAvailableSeats(concertDateId, availableSeats);
@@ -115,8 +144,11 @@ public class ConcertService {
         concertRepository.saveSeat(seat);
         // 4. 예약 테이블 저장
         ConcertReservationInfo reservationInfo = command.toReservationDomain(seat, concertDate);
+        ConcertReservationInfo savedReservation = concertValidator.checkSavedReservation(concertRepository.saveReservation(reservationInfo), "예약에 실패하였습니다");
+        // 5. 예약에 성공하면 delayedReservationQueue 에 임시 queue 저장
+        delayedReservationQueue.offer(savedReservation, 1, TimeUnit.MINUTES);
 
-        return concertValidator.checkSavedReservation(concertRepository.saveReservation(reservationInfo), "예약에 실패하였습니다");
+        return savedReservation;
     }
 
     /**
@@ -125,6 +157,7 @@ public class ConcertService {
      * @param userId userId 정보
      * @return 유저의 예약 정보를 반환한다.
      */
+    @Transactional(readOnly = true)
     public List<ConcertReservationInfo> getMyReservations(Long userId) {
         return concertRepository.getMyReservations(userId);
     }
@@ -167,6 +200,7 @@ public class ConcertService {
      *
      * @param command reservation 정보
      */
+    @Transactional
     public ConcertReservationInfo completeReservation(PaymentCommand.Create command) {
 
         Optional<ConcertReservationInfo> reservation = concertRepository.getReservation(command.reservationId());
@@ -183,24 +217,43 @@ public class ConcertService {
      * 좌석을 계속 점유할 수 있는지 확인한다.
      */
     @Transactional
-    public void checkOccupiedSeat() {
-        // 임시 예약인 모든 예약 조회
-        List<ConcertReservationInfo> allTempReservation = concertRepository.getAllTempReservation();
+    public void checkOccupiedSeat(Long reservationId) {
+        Optional<ConcertReservationInfo> reservation = concertRepository.getReservation(reservationId);
+        if (reservation.isEmpty() || !reservation.get().getStatus().equals(TEMPORARY_RESERVED)) {
+            throw new CustomException(ErrorCode.RESERVATION_IS_ALREADY_CANCEL_OR_COMPLETE, "이미 완료되었거나 취소된 예약입니다.");
 
-        allTempReservation.forEach(reservation -> {
-            LocalDateTime createdAtTime = reservation.getCreatedAt();
-            Duration duration = Duration.between(createdAtTime, LocalDateTime.now());
+        }
+        // 예약 상태 취소로 변경
+        reservation.get().cancel();
+        concertRepository.saveReservation(reservation.get());
+        // 좌석 점유 취소(다시 예약 가능 상태로 변경)
+        Optional<Seat> seat = concertRepository.getSeat(reservation.get().getSeatId());
+        Seat seatInfo = concertValidator.checkExistSeat(seat, "좌석 정보가 존재하지 않습니다");
+        seatInfo.cancel();
 
-            if (duration.toSeconds() > 5 * 60) { //정해진 시간을 넘었는지 (default:5분)
-                // 1. 예약 취소
-                reservation.cancel();
-                concertRepository.saveReservation(reservation);
-                // 2. 좌석 점유 취소(다시 예약 가능 상태로 변경)
-                Optional<Seat> seat = concertRepository.getSeat(reservation.getSeatId());
-                Seat seatInfo = concertValidator.checkExistSeat(seat, "좌석 정보가 존재하지 않습니다");
-                seatInfo.cancel();
-                concertRepository.saveSeat(seatInfo);
+        concertRepository.saveSeat(seatInfo);
+
+    }
+
+    /**
+     * 좌석 점유 해지 시간이 되면 동작한다.
+     */
+    private void cancelOccupiedSeatListener() {
+        new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    // 내가 설정한 시간이 지나서 요소를 사용할 수 있을 때 까지 대기
+                    if (tempReservationQueue != null) {
+                        Object item = tempReservationQueue.take();
+                        if (item instanceof ConcertReservationInfo reservationInfo) {
+                            // 예약 상태가 임시 예약이면 예약 취소
+                            checkOccupiedSeat(reservationInfo.getReservationId());
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
-        });
+        }).start();
     }
 }
