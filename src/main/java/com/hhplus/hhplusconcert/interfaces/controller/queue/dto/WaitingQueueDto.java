@@ -4,6 +4,8 @@ import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.command.WaitingQueueCommand;
 import lombok.Builder;
 
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus.ACTIVE;
+
 public class WaitingQueueDto {
 
     @Builder(toBuilder = true)
@@ -21,7 +23,7 @@ public class WaitingQueueDto {
             return Response.builder()
                     .userId(queue.getUser().getUserId())
                     .token(queue.getToken())
-                    .isActive(queue.getStatus() == WaitingQueue.WaitingQueueStatus.ACTIVE)
+                    .isActive(queue.getStatus() == ACTIVE)
                     .waitingInfo(queue.getWaitingNum() != null ? new WaitingInfo(queue.getWaitingNum(), queue.getWaitTimeInSeconds()) : null)
                     .build();
 

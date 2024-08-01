@@ -2,12 +2,16 @@ package com.hhplus.hhplusconcert.domain.queue;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.User;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.ALREADY_TOKEN_IS_ACTIVE;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_IS_NOT_YET;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.MAX_ACTIVE_USER;
 import static java.time.LocalDateTime.now;
 
 @AllArgsConstructor
@@ -31,6 +35,7 @@ public class WaitingQueue {
 
     private Long waitTimeInSeconds;
 
+
     public void addWaitingInfo(long waitingNum, long waitTimeInSeconds) {
         this.waitingNum = waitingNum;
         this.waitTimeInSeconds = waitTimeInSeconds;
@@ -39,7 +44,7 @@ public class WaitingQueue {
 
     public static long calculateActiveCnt(long activeTokenCnt) {
 
-        return WaitingQueueEnv.ACTIVE_USER_COUNT.info - activeTokenCnt;
+        return MAX_ACTIVE_USER - activeTokenCnt;
     }
 
     public enum WaitingQueueStatus {
@@ -47,15 +52,6 @@ public class WaitingQueue {
         WAIT, // 대기 중
         ACTIVE, // 활성화
         EXPIRED // 만료
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    public enum WaitingQueueEnv {
-
-        ACTIVE_USER_COUNT(50); //최대 활성화 유저 수 50명
-
-        private final int info;
     }
 
     public static WaitingQueue toDomain(long availableActiveTokenCnt, User user, String token) {

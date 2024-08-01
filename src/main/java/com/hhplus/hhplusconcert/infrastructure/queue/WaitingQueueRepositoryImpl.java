@@ -2,49 +2,21 @@ package com.hhplus.hhplusconcert.infrastructure.queue;
 
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
+import com.hhplus.hhplusconcert.infrastructure.redis.RedisRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.*;
 
 @Repository
 @RequiredArgsConstructor
 public class WaitingQueueRepositoryImpl implements WaitingQueueRepository {
 
     private final WaitingQueueJpaRepository waitingQueueJpaRepository;
-
-    @Override
-    public List<WaitingQueue> getTokens(Long userId) {
-        List<WaitingQueueEntity> queueEntities = waitingQueueJpaRepository.findAllByUser_userId(userId);
-
-        return queueEntities.stream()
-                .map(WaitingQueueEntity::toDomain)
-                .toList();
-    }
-
-    @Override
-    public Optional<WaitingQueue> getToken(Long userId, String token) {
-        Optional<WaitingQueueEntity> queueEntity = waitingQueueJpaRepository.findByUserIdAndToken(userId, token);
-
-        if (queueEntity.isPresent()) {
-            return queueEntity.map(WaitingQueueEntity::toDomain);
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<WaitingQueue> getToken(String token) {
-        Optional<WaitingQueueEntity> queueEntity = waitingQueueJpaRepository.findByToken(token);
-
-        if (queueEntity.isPresent()) {
-            return queueEntity.map(WaitingQueueEntity::toDomain);
-        }
-        return Optional.empty();
-    }
+    private final RedisRepository redisRepository;
 
     @Override
     public Optional<WaitingQueue> saveQueue(WaitingQueue queue) {
@@ -55,55 +27,52 @@ public class WaitingQueueRepositoryImpl implements WaitingQueueRepository {
 
     @Override
     public long getActiveCnt() {
-        return waitingQueueJpaRepository.countByStatusIs(WaitingQueueStatus.ACTIVE);
-    }
-
-    @Override
-    public List<WaitingQueue> getWaitingTokens() {
-        List<WaitingQueueEntity> queueEntities = waitingQueueJpaRepository
-                .findAllByStatusIsOrderByRequestTime(WaitingQueueStatus.WAIT);
-
-        return queueEntities.stream()
-                .map(WaitingQueueEntity::toDomain)
-                .toList();
-
-    }
-
-    @Override
-    public List<WaitingQueue> getActiveOver10min() {
-        List<WaitingQueueEntity> queueEntity = waitingQueueJpaRepository
-                .getActiveOver10Min(LocalDateTime.now().minusMinutes(10), //10분이 지났는지
-                        WaitingQueueStatus.ACTIVE);
-
-        return queueEntity.stream().map(WaitingQueueEntity::toDomain).toList();
-
-    }
-
-    @Override
-    public Optional<WaitingQueue> getActiveToken(Long userId) {
-        Optional<WaitingQueueEntity> activeToken = waitingQueueJpaRepository.
-                findByUser_userIdAndStatusIs(userId, WaitingQueueStatus.ACTIVE);
-
-        if (activeToken.isPresent()) {
-            return activeToken.map(WaitingQueueEntity::toDomain);
-        }
-
-        return Optional.empty();
+        return redisRepository.zSetSize(ACTIVE_KEY);
     }
 
     @Override
     public void deleteExpiredTokens() {
-        waitingQueueJpaRepository.deleteAllInBatchByStatusIs(WaitingQueueStatus.EXPIRED);
+        redisRepository.zSetRemoveRangeByScore(ACTIVE_KEY, 0, System.currentTimeMillis());
     }
 
     @Override
-    public long getWaitingCnt() {
-        return waitingQueueJpaRepository.countByStatusIs(WaitingQueueStatus.WAIT);
+    public void saveActiveQueue(String token, long expiredTimeMillis) {
+        redisRepository.zSetAdd(ACTIVE_KEY, token, expiredTimeMillis);
     }
 
     @Override
-    public long getWaitingCnt(LocalDateTime requestTime) {
-        return waitingQueueJpaRepository.countByRequestTimeBeforeAndStatusIs(requestTime,
-                WaitingQueueStatus.WAIT);
+    public void deleteWaitingQueue(String token) {
+        redisRepository.zSetRemove(WAIT_KEY, token);
+    }
+
+    @Override
+    public Long getMyWaitingNum(String token) {
+        return redisRepository.zSetRank(WAIT_KEY, token);
+    }
+
+    @Override
+    public void saveWaitingQueue(String token) {
+        redisRepository.zSetAdd(WAIT_KEY, token, System.currentTimeMillis());
+    }
+
+    @Override
+    public Set<String> getWaitingTokens() {
+        return redisRepository.zSetGetRange(WAIT_KEY, 0, ENTER_10_SECONDS - 1);
+
+    }
+
+    @Override
+    public void deleteWaitingTokens() {
+        redisRepository.zSetRemoveRange(WAIT_KEY, 0, ENTER_10_SECONDS - 1);
+    }
+
+    @Override
+    public void saveActiveQueues(Set<String> tokens) {
+        redisRepository.zSetAddRange(ACTIVE_KEY, tokens);
+    }
+
+    @Override
+    public void deleteExpiredToken(String token) {
+        redisRepository.zSetRemove(ACTIVE_KEY, token);
     }
 }

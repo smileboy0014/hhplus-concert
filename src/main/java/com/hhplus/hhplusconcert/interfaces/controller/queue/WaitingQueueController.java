@@ -2,7 +2,6 @@ package com.hhplus.hhplusconcert.interfaces.controller.queue;
 
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
 import com.hhplus.hhplusconcert.interfaces.controller.common.dto.ApiResultResponse;
-import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.TokenDto;
 import com.hhplus.hhplusconcert.interfaces.controller.queue.dto.WaitingQueueDto;
 import com.hhplus.hhplusconcert.support.aop.TraceLog;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,34 +26,16 @@ public class WaitingQueueController {
     private final WaitingQueueFacade waitingQueueFacade;
 
     /**
-     * 토큰 발급 요청
+     * 대기열 활성여부 조회
      *
      * @param request userId 정보
      * @return ApiResultResponse 토큰 정보와 대기열 정보를 반환한다.
      */
-    @Operation(summary = "토큰 발급 요청")
+    @Operation(summary = "대기열 활성여부 조회", description = "토큰 요청값이 없으면 새로 발급하여 응답 반환, isActive 반환값에 따라 페이지 진입 가능 여부를 판단합니다.")
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueDto.Response.class)))
-    @PostMapping("/issue-token")
-    public ApiResultResponse<WaitingQueueDto.Response> issueToken(@RequestBody @Valid TokenDto.Request request) {
+    @PostMapping("/token")
+    public ApiResultResponse<WaitingQueueDto.Response> checkWaiting(@RequestBody @Valid WaitingQueueDto.Request request) {
         return ApiResultResponse.ok(
-                WaitingQueueDto.Response.of(waitingQueueFacade.issueToken(request.toCreateCommand())));
+                WaitingQueueDto.Response.of(waitingQueueFacade.checkWaiting(request.toCreateCommand())));
     }
-
-
-    /**
-     * 대기열 확인
-     *
-     * @param request userId, token 정보
-     * @return ApiResultResponse 대기열 정보를 반환한다.
-     */
-    @Operation(summary = "대기열 확인")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = WaitingQueueDto.Response.class)))
-    @PostMapping("/check")
-    public ApiResultResponse<WaitingQueueDto.Response> checkQueue(@RequestBody @Valid WaitingQueueDto.Request request) {
-
-        return ApiResultResponse.ok(WaitingQueueDto.Response.of(waitingQueueFacade.checkQueue(request.toCreateCommand())));
-
-    }
-
-
 }

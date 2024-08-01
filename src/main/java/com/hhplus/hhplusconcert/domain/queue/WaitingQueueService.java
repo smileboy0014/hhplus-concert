@@ -1,6 +1,5 @@
 package com.hhplus.hhplusconcert.domain.queue;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.support.aop.DistributedLock;
 import com.hhplus.hhplusconcert.support.utils.JwtUtils;
@@ -8,12 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_ACTIVE_IS_NOT_EXIST;
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.TOKEN_IS_NOT_FOUND;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus.ACTIVE;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus.WAIT;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.AUTO_EXPIRED_TIME;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.ENTER_10_SECONDS;
 
 @Service
 @RequiredArgsConstructor
@@ -22,145 +21,91 @@ public class WaitingQueueService {
 
     private final JwtUtils jwtUtils;
     private final WaitingQueueRepository waitingQueueRepository;
-    private final WaitingQueueValidator waitingQueueValidator;
 
     /**
-     * 토큰 발급을 요청하면 토큰 정보를 반환한다.
+     * 토큰의 활성화 여부를 체크하여 토큰 대기열 정보를 반환한다.
      *
-     * @param userId userId 정보
-     * @return WaitingQueueTokenResponse 토큰 정보를 반환한다.
+     * @param user  user 정보
+     * @param token token 정보
+     * @return WaitingQueue 대기열 정보
      */
-    public String issueToken(Long userId) {
-        //토큰 발급
-        return jwtUtils.createToken(userId);
-    }
 
-    /**
-     * 대기열에 진입을 요청하면 대기열 정보를 반환한다.
-     *
-     * @param (user,token) user, token 정보
-     * @return WaitingQueueResponse 대기열 정보를 반환한다.
-     */
     @Transactional
     @DistributedLock(key = "'waitingQueueLock'")
-    public WaitingQueue enterQueue(User user, String token) {
-        // 현재 활성 유저 수 확인
+    public WaitingQueue checkWaiting(User user, String token) {
+        // 1. 토큰을 발급한다.
+        if (token == null) token = jwtUtils.createToken(user.getUserId());
+        // 2. 현재 활성 유저 수 확인
         long activeTokenCnt = waitingQueueRepository.getActiveCnt();
-        // 이미 유저의 활성화 된 토큰이 있다면 expired 시킴
-        expiredIfExist(user.getUserId(), activeTokenCnt);
-        // 활성화 시킬 수 있는 수 계산
-        long availableActiveTokenCnt = WaitingQueue.calculateActiveCnt(activeTokenCnt);
-        // 토큰 정보 저장
-        WaitingQueue waitingToken = WaitingQueue.toDomain(availableActiveTokenCnt, user, token);
-
-        Optional<WaitingQueue> savedWaitingToken = waitingQueueRepository.saveQueue(waitingToken);
-        WaitingQueue waitingTokenInfo = waitingQueueValidator.checkSavedQueue(savedWaitingToken);
-
-        // 만약 활성화 된 토큰이 아니라면 대기열 정보 생성
-        if (waitingTokenInfo.getStatus() == WaitingQueue.WaitingQueueStatus.WAIT) {
-            long waitingCnt = waitingQueueRepository.getWaitingCnt();
-            waitingTokenInfo.addWaitingInfo(waitingCnt, Duration.ofMinutes(waitingCnt).toSeconds());
-        }
-
-        return waitingTokenInfo;
-    }
-
-    /**
-     * 대기열 확인을 요청하면 대기열 정보를 반환한다.
-     *
-     * @param (userId,token) userId, token 정보
-     * @return WaitingQueueResponse 대기열 정보를 반환한다.
-     */
-    @Transactional(readOnly = true)
-    public WaitingQueue checkQueue(Long userId, String token) {
-
-        // 1. 토큰 정보 확인
-        Optional<WaitingQueue> tokenInfo = waitingQueueRepository.getToken(userId, token);
-
-        if (tokenInfo.isEmpty()) {
-            throw new CustomException(TOKEN_IS_NOT_FOUND,
-                    "토큰 정보를 찾을 수 없습니다");
-        }
-        // 2. 토큰이 활성화 상태인지 확인
-        tokenInfo.get().isActive();
-
-        // 3. 활성화 되지 않은 토큰이면 대기 정보 반환
-        long waitingCnt = waitingQueueRepository.getWaitingCnt(tokenInfo.get().getRequestTime());
-        tokenInfo.get().addWaitingInfo(waitingCnt, Duration.ofMinutes(waitingCnt).toSeconds());
-
-        return tokenInfo.get();
-    }
-
-    /**
-     * 만약 토큰이 존재한다면 토큰 상태를 expired 시킨다.
-     *
-     * @param userId userId 정보
-     */
-    @Transactional
-    public void expiredIfExist(Long userId, long activeTokenCnt) {
-        List<WaitingQueue> tokens = waitingQueueRepository.getTokens(userId);
-
-        tokens.forEach(token -> {
-            token.expire(); //토큰 만료
-            waitingQueueRepository.saveQueue(token);
-        });
-
-        activeToken(activeTokenCnt); // 토큰 활성화
-    }
-
-
-    /**
-     * 대기열에 있는 토큰을 순차적으로 active 시킨다.
-     */
-    @Transactional
-    public void activeToken(Long activeTokenCnt) {
-        // 1. 활성 유저 수 확인
-        if (activeTokenCnt == null) activeTokenCnt = waitingQueueRepository.getActiveCnt();
-
+        // 3. 활성화 시킬 수 있는 수 계산
         long availableActiveTokenCnt = WaitingQueue.calculateActiveCnt(activeTokenCnt);
 
-        if (availableActiveTokenCnt == 0) throw new CustomException(TOKEN_ACTIVE_IS_NOT_EXIST, "활성화 시킬 토큰이 존재하지 않습니다.");
-        // 2-1 대기열에 있는 유저 토큰 조회
-        List<WaitingQueue> waitingTokens = waitingQueueRepository.getWaitingTokens();
-        // 2-2 활성화 할 수 있는 만큼 활성화 진행
-        waitingTokens.stream()
-                .limit(availableActiveTokenCnt)
-                .forEach(waitingQueue -> {
-                    waitingQueue.active();
-                    waitingQueueRepository.saveQueue(waitingQueue);
-                });
+        if (availableActiveTokenCnt > 0) {
+            return getInActiveQueue(user, token); // 활성화 정보 반환
+        }
+        return getInWaitingQueue(user, token); // 대기열 정보 반환
+    }
+
+    private WaitingQueue getInActiveQueue(User user, String token) {
+        // 1. 활성 만료 시간
+        long expiredTimeMillis = System.currentTimeMillis() + AUTO_EXPIRED_TIME;
+        // 2. 활성 유저열에 추가
+        waitingQueueRepository.saveActiveQueue(token, expiredTimeMillis);
+        // 3. 대기열에서 사용자 토큰 삭제
+        waitingQueueRepository.deleteWaitingQueue(token);
+
+        return WaitingQueue.builder()
+                .token(token)
+                .user(user)
+                .status(ACTIVE)
+                .build();
+    }
+
+    private WaitingQueue getInWaitingQueue(User user, String token) {
+        Long myWaitingNum = waitingQueueRepository.getMyWaitingNum(token);
+        if (myWaitingNum == null) { // 대기순번이 없다면 대기열에 없는 유저
+            // 대기열에 추가
+            waitingQueueRepository.saveWaitingQueue(token);
+            // 내 대기순번 반환
+            myWaitingNum = waitingQueueRepository.getMyWaitingNum(token);
+        }
+        // 대기 잔여 시간 계산 (10초당 활성 전환 수)
+        long waitTimeInSeconds = (long) Math.ceil((double) (myWaitingNum - 1) / ENTER_10_SECONDS) * 10;
+
+        return WaitingQueue.builder()
+                .token(token)
+                .user(user)
+                .status(WAIT)
+                .waitingNum(myWaitingNum)
+                .waitTimeInSeconds(waitTimeInSeconds)
+                .build();
     }
 
     /**
-     * 시간이 만료된 active token 을 expired 시킨다.
+     * N초당 M 명씩 active token 으로 전환한다.
      */
-    @Transactional
+    public void getInActiveQueue() {
+        // 대기열에서 순서대로 정해진 유저만큼 가져오기
+        Set<String> waitingTokens = waitingQueueRepository.getWaitingTokens();
+        // 대기열에서 가져온만큼 삭제
+        waitingQueueRepository.deleteWaitingTokens();
+        // 활성화 열로 유저 변경
+        waitingQueueRepository.saveActiveQueues(waitingTokens);
+    }
+
+    /**
+     * 시간이 만료된 active token 을 만료시킨다.
+     */
     public void expireToken() {
-
-        // active 된지 10분이 지난 토큰 조회
-        List<WaitingQueue> tokens = waitingQueueRepository.getActiveOver10min();
-
-        tokens.forEach(waitingQueue -> {
-            waitingQueue.expireOver10min();
-            waitingQueueRepository.saveQueue(waitingQueue);
-        });
+        waitingQueueRepository.deleteExpiredTokens();
     }
 
     /**
-     * 강제로 토큰을 만료시킨다.
+     * 강제로 active token 을 만료시킨다.
+     *
+     * @param token token 정보
      */
-    @Transactional
-    public void forceExpireToken(Long userId) {
-        Optional<WaitingQueue> activeToken = waitingQueueRepository.getActiveToken(userId);
-
-        if (activeToken.isPresent()) {
-            activeToken.get().expire();
-            waitingQueueRepository.saveQueue(activeToken.get());
-        }
-    }
-
-    @Transactional
-    public void deleteExpiredToken() {
-        waitingQueueRepository.deleteExpiredTokens();
+    public void forceExpireToken(String token) {
+        waitingQueueRepository.deleteExpiredToken(token);
     }
 }

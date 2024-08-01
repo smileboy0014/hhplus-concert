@@ -1,4 +1,4 @@
-package com.hhplus.hhplusconcert.support.config;
+package com.hhplus.hhplusconcert.infrastructure.common.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
