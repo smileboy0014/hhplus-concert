@@ -5,6 +5,7 @@ import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserRepository;
+import com.hhplus.hhplusconcert.infrastructure.redis.RedisRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -23,6 +24,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
+import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.ACTIVE_KEY;
 
 @Component
 @RequiredArgsConstructor
@@ -37,6 +39,7 @@ public class JwtUtils {
 
     private final WaitingQueueRepository waitingQueueRepository;
     private final UserRepository userRepository;
+    private final RedisRepository redisRepository;
 
     /**
      * 토큰을 생성한다.
@@ -111,8 +114,9 @@ public class JwtUtils {
      * WaitingQueue 에 있는 토큰 정보가 유효한지 확인한다.
      *
      * @param userId userId 정보
+     * @param token token 정보
      */
-    public void validToken(Long userId) {
+    public void validToken(Long userId, String token) {
         // 사용자가 존재하는지 확인
         Optional<User> user = userRepository.getUser(userId);
 
@@ -120,6 +124,12 @@ public class JwtUtils {
             throw new CustomException(ErrorCode.USER_IS_NOT_FOUND,
                     "토큰을 다시 발급 받아 주세요.");
         }
+        Long tokenRank = redisRepository.zSetRank(ACTIVE_KEY, token);
+        if (tokenRank == null) {
+            throw new CustomException(ErrorCode.TOKEN_IS_NOT_FOUND,
+                    "활성화 된 토큰이 아닙니다. 다시 토큰을 발급 받거나 대기해주세요.");
+        }
+
     }
 
     private SecretKey getSigningKey() {

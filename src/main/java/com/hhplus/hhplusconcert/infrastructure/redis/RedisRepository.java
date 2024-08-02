@@ -1,6 +1,5 @@
 package com.hhplus.hhplusconcert.infrastructure.redis;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisConnectionUtils;
@@ -16,7 +15,6 @@ public class RedisRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String REDIS_NAMESPACE = "hhplus:";
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // sorted_set 추가
     public Boolean zSetAdd(String key, String value, double score) {
@@ -43,17 +41,8 @@ public class RedisRepository {
     }
 
 
-    public boolean zSetElementExist(String activeKey, String token) {
-        Double score = redisTemplate.opsForZSet().score(activeKey, token);
-        return score != null;
-    }
-
     public Set<String> zSetGetRange(String key, long start, long end) {
         return redisTemplate.opsForZSet().range(REDIS_NAMESPACE + key, start, end);
-    }
-
-    public Set<String> zSetGetRangeByScore(String activeKey, int start, long end) {
-        return redisTemplate.opsForZSet().rangeByScore(REDIS_NAMESPACE + activeKey, start, end);
     }
 
     public void zSetRemoveRange(String key, int start, int end) {
