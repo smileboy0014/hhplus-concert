@@ -1,7 +1,10 @@
 package com.hhplus.hhplusconcert.domain.queue;
 
+import com.hhplus.hhplusconcert.domain.user.User;
+
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface WaitingQueueRepository {
 
@@ -11,15 +14,13 @@ public interface WaitingQueueRepository {
 
     Set<String> getWaitingTokens();
 
-    void deleteExpiredTokens();
+    void saveActiveQueue(User user, String token);
 
-    void saveActiveQueue(String token, long expiredTimeMillis);
+    void deleteWaitingQueue(User user, String token);
 
-    void deleteWaitingQueue(String token);
+    Long getMyWaitingNum(User user, String token);
 
-    Long getMyWaitingNum(String token);
-
-    void saveWaitingQueue(String token);
+    void saveWaitingQueue(User user, String token);
 
     void deleteWaitingTokens();
 
@@ -27,4 +28,5 @@ public interface WaitingQueueRepository {
 
     void deleteExpiredToken(String token);
 
+    void setTimeout(String key, long timeout, TimeUnit unit);
 }

@@ -32,7 +32,6 @@ public class ConcertService {
     private final RedissonClient redissonClient;
 
     @PostConstruct
-    @Profile("!test") // Only run this in non-test profiles
     public void init() {
         cancelOccupiedSeatListener();
 
@@ -146,7 +145,7 @@ public class ConcertService {
         ConcertReservationInfo reservationInfo = command.toReservationDomain(seat, concertDate);
         ConcertReservationInfo savedReservation = concertValidator.checkSavedReservation(concertRepository.saveReservation(reservationInfo), "예약에 실패하였습니다");
         // 5. 예약에 성공하면 delayedReservationQueue 에 임시 queue 저장
-        delayedReservationQueue.offer(savedReservation, 1, TimeUnit.MINUTES);
+        delayedReservationQueue.offer(savedReservation, 5, TimeUnit.MINUTES);
 
         return savedReservation;
     }
@@ -221,7 +220,6 @@ public class ConcertService {
         Optional<ConcertReservationInfo> reservation = concertRepository.getReservation(reservationId);
         if (reservation.isEmpty() || !reservation.get().getStatus().equals(TEMPORARY_RESERVED)) {
             throw new CustomException(ErrorCode.RESERVATION_IS_ALREADY_CANCEL_OR_COMPLETE, "이미 완료되었거나 취소된 예약입니다.");
-
         }
         // 예약 상태 취소로 변경
         reservation.get().cancel();
@@ -232,7 +230,6 @@ public class ConcertService {
         seatInfo.cancel();
 
         concertRepository.saveSeat(seatInfo);
-
     }
 
     /**

@@ -21,11 +21,4 @@ public class WaitingQueueScheduler { // 대기열 관련 스케줄러
         waitingQueueFacade.active();
     }
 
-    /**
-     * token을 expired 하는 스케줄러 1분마다 실행
-     */
-    @Scheduled(fixedRate = 1000 * 60)
-    public void expireToken() {
-        waitingQueueFacade.expire();
-    }
 }

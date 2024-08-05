@@ -3,11 +3,9 @@ package com.hhplus.hhplusconcert.application;
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueService;
-import com.hhplus.hhplusconcert.domain.queue.command.TokenCommand;
 import com.hhplus.hhplusconcert.domain.queue.command.WaitingQueueCommand;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserService;
-import org.hibernate.query.sqm.mutation.internal.cte.CteInsertStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +36,7 @@ class WaitingQueueFacadeTest {
     @DisplayName("토큰을 발급하고, 대기열 정보를 확인하는 유즈케이스를 실행한다.")
     void checkWaiting() {
         // given
-        WaitingQueueCommand.Create command = new WaitingQueueCommand.Create(1L,"jwt-token");
+        WaitingQueueCommand.Create command = new WaitingQueueCommand.Create(1L, "jwt-token");
         User user = User.builder()
                 .userId(command.userId())
                 .build();
@@ -47,7 +45,7 @@ class WaitingQueueFacadeTest {
                 .status(WaitingQueue.WaitingQueueStatus.ACTIVE).build();
 
         when(userService.getUser(command.userId())).thenReturn(user);
-        when(waitingQueueService.checkWaiting(any(User.class),any(String.class))).thenReturn(queue);
+        when(waitingQueueService.checkWaiting(any(User.class), any(String.class))).thenReturn(queue);
 
         // when
         WaitingQueue result = waitingQueueFacade.checkWaiting(command);
@@ -60,21 +58,10 @@ class WaitingQueueFacadeTest {
     @DisplayName("대기열에 있는 토큰을 순차적으로 active 시키는 유즈케이스를 실행한다.")
     void active() {
         //given //when
-        waitingQueueService.getInActiveQueue();
+        waitingQueueService.activeTokens();
 
         //then
-        verify(waitingQueueService).getInActiveQueue();
-    }
-
-
-    @Test
-    @DisplayName("시간이 만료된 active token 을 expired 시키는 유즈케이스를 실행한다.")
-    void expire() {
-        // given // when
-        waitingQueueService.expireToken();
-
-        // then
-        verify(waitingQueueService).expireToken();
+        verify(waitingQueueService).activeTokens();
     }
 
 }

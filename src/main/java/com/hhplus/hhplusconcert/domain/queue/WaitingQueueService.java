@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus.ACTIVE;
 import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus.WAIT;
@@ -29,7 +30,6 @@ public class WaitingQueueService {
      * @param token token 정보
      * @return WaitingQueue 대기열 정보
      */
-
     @Transactional
     @DistributedLock(key = "'waitingQueueLock'")
     public WaitingQueue checkWaiting(User user, String token) {
@@ -41,19 +41,19 @@ public class WaitingQueueService {
         long availableActiveTokenCnt = WaitingQueue.calculateActiveCnt(activeTokenCnt);
 
         if (availableActiveTokenCnt > 0) {
-            return getInActiveQueue(user, token); // 활성화 정보 반환
+            return getInActive(user, token); // 활성화 정보 반환
         }
-        return getInWaitingQueue(user, token); // 대기열 정보 반환
+        return getInWaiting(user, token); // 대기열 정보 반환
     }
 
-    private WaitingQueue getInActiveQueue(User user, String token) {
-        // 1. 활성 만료 시간
-        long expiredTimeMillis = System.currentTimeMillis() + AUTO_EXPIRED_TIME;
-        // 2. 활성 유저열에 추가
-        waitingQueueRepository.saveActiveQueue(token, expiredTimeMillis);
-        // 3. 대기열에서 사용자 토큰 삭제
-        waitingQueueRepository.deleteWaitingQueue(token);
-
+    private WaitingQueue getInActive(User user, String token) {
+        // 1. 활성 유저열에 추가
+        waitingQueueRepository.saveActiveQueue(user, token);
+        // 2. ttl 설정
+        waitingQueueRepository.setTimeout(token, AUTO_EXPIRED_TIME, TimeUnit.MILLISECONDS);
+        // 3. 대기열에서 토큰 정보 제거
+        waitingQueueRepository.deleteWaitingQueue(user, token);
+        // 4. 활성화 정보 반환
         return WaitingQueue.builder()
                 .token(token)
                 .user(user)
@@ -61,13 +61,13 @@ public class WaitingQueueService {
                 .build();
     }
 
-    private WaitingQueue getInWaitingQueue(User user, String token) {
-        Long myWaitingNum = waitingQueueRepository.getMyWaitingNum(token);
+    private WaitingQueue getInWaiting(User user, String token) {
+        Long myWaitingNum = waitingQueueRepository.getMyWaitingNum(user, token);
         if (myWaitingNum == null) { // 대기순번이 없다면 대기열에 없는 유저
             // 대기열에 추가
-            waitingQueueRepository.saveWaitingQueue(token);
+            waitingQueueRepository.saveWaitingQueue(user, token);
             // 내 대기순번 반환
-            myWaitingNum = waitingQueueRepository.getMyWaitingNum(token);
+            myWaitingNum = waitingQueueRepository.getMyWaitingNum(user, token);
         }
         // 대기 잔여 시간 계산 (10초당 활성 전환 수)
         long waitTimeInSeconds = (long) Math.ceil((double) (myWaitingNum - 1) / ENTER_10_SECONDS) * 10;
@@ -84,20 +84,13 @@ public class WaitingQueueService {
     /**
      * N초당 M 명씩 active token 으로 전환한다.
      */
-    public void getInActiveQueue() {
+    public void activeTokens() {
         // 대기열에서 순서대로 정해진 유저만큼 가져오기
         Set<String> waitingTokens = waitingQueueRepository.getWaitingTokens();
         // 대기열에서 가져온만큼 삭제
         waitingQueueRepository.deleteWaitingTokens();
         // 활성화 열로 유저 변경
         waitingQueueRepository.saveActiveQueues(waitingTokens);
-    }
-
-    /**
-     * 시간이 만료된 active token 을 만료시킨다.
-     */
-    public void expireToken() {
-        waitingQueueRepository.deleteExpiredTokens();
     }
 
     /**

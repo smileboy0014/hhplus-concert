@@ -114,7 +114,7 @@ public class JwtUtils {
      * WaitingQueue 에 있는 토큰 정보가 유효한지 확인한다.
      *
      * @param userId userId 정보
-     * @param token token 정보
+     * @param token  token 정보
      */
     public void validToken(Long userId, String token) {
         // 사용자가 존재하는지 확인
@@ -124,8 +124,8 @@ public class JwtUtils {
             throw new CustomException(ErrorCode.USER_IS_NOT_FOUND,
                     "토큰을 다시 발급 받아 주세요.");
         }
-        Long tokenRank = redisRepository.zSetRank(ACTIVE_KEY, token);
-        if (tokenRank == null) {
+        boolean activeToken = redisRepository.setIsMember(ACTIVE_KEY + ":" + token, String.valueOf(userId));
+        if (!activeToken) {
             throw new CustomException(ErrorCode.TOKEN_IS_NOT_FOUND,
                     "활성화 된 토큰이 아닙니다. 다시 토큰을 발급 받거나 대기해주세요.");
         }

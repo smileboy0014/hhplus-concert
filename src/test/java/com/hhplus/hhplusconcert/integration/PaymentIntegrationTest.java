@@ -222,7 +222,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
             executorService.execute(() -> {
                 try {
                     PaymentCommand.Create command = new PaymentCommand.Create(reservationIds.poll(),
-                            1L,"jwt-token");
+                            1L, "jwt-token");
                     paymentFacade.pay(command);
                     successCount.getAndIncrement();
                 } catch (RuntimeException e) {

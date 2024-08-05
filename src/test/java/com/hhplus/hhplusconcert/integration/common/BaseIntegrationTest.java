@@ -1,7 +1,6 @@
 package com.hhplus.hhplusconcert.integration.common;
 
 
-import com.hhplus.hhplusconcert.domain.queue.WaitingQueueRepository;
 import com.hhplus.hhplusconcert.infrastructure.redis.RedisRepository;
 import io.restassured.RestAssured;
 import io.restassured.response.ExtractableResponse;

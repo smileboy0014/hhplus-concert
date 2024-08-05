@@ -1,6 +1,5 @@
 package com.hhplus.hhplusconcert.domain.queue;
 
-import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.support.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,14 +11,11 @@ import org.mockito.MockitoAnnotations;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.ALREADY_TOKEN_IS_ACTIVE;
 import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class WaitingQueueServiceTest {
@@ -87,7 +83,7 @@ class WaitingQueueServiceTest {
         when(waitingQueueValidator.checkSavedQueue(any())).thenReturn(queue);
 
         // when
-        WaitingQueue result = waitingQueueService.checkWaiting(user,token);
+        WaitingQueue result = waitingQueueService.checkWaiting(user, token);
 
         // then
         assertThat(result.getStatus()).isEqualTo(WaitingQueueStatus.WAIT);
@@ -117,21 +113,11 @@ class WaitingQueueServiceTest {
         when(waitingQueueRepository.getWaitingTokens()).thenReturn(tokens);
 
         // when
-        waitingQueueService.getInActiveQueue();
+        waitingQueueService.activeTokens();
 
         // then
         verify(waitingQueueRepository).deleteWaitingTokens();
         verify(waitingQueueRepository).saveActiveQueues(tokens);
     }
 
-    @Test
-    @DisplayName("토큰을 만료시킨다.")
-    void expireToken() {
-        // given // when
-        waitingQueueService.expireToken();
-
-        // then
-        verify(waitingQueueRepository).deleteExpiredTokens();
-
-    }
 }
