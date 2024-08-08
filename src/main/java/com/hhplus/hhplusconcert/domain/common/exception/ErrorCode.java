@@ -55,6 +55,10 @@ public enum ErrorCode {
     TOKEN_IS_NOT_YET("토큰 만료대상이 아닙니다."),
     ALREADY_TOKEN_IS_ACTIVE("이미 활성화된 토큰입니다."),
 
+    //Client 관련
+    DATA_PLATFORM_SEND_FAIL("예약 완료 정보를 전달하는데 실패하였습니다"),
+    PUSH_KAKAOTALK_MESSAGE_FAIL("카카오톡 메세지를 전달하는데 실패하였습니다"),
+
     // Lock 관련
     LOCK_ACQUIRE_FAILED("Lock을 획득하는데 실패하였습니다");
 
