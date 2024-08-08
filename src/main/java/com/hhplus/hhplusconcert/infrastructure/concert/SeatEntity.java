@@ -16,9 +16,7 @@ import java.time.LocalDateTime;
 @Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "seat", indexes = {
-        @Index(name = "IDX_SEAT_COVERING", columnList = "concert_date_id, status, seat_id, seat_number, price, created_at, updated_at, ticket_class, version"),
-        @Index(name = "IDX_SEAT_STATUS", columnList = "concert_date_id, status")})
+@Table(name = "seat")
 public class SeatEntity extends BaseTimeEntity {
 
     @Id
