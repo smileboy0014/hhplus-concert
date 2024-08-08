@@ -15,7 +15,6 @@ import java.util.Optional;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT_ALREADY_CANCEL_OR_REFUND;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT_IS_FAILED;
 import static com.hhplus.hhplusconcert.domain.payment.Payment.PaymentStatus;
-import static com.hhplus.hhplusconcert.domain.payment.Payment.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,12 +41,12 @@ class PaymentServiceTest {
         ConcertReservationInfo reservationInfo = ConcertReservationInfo.builder()
                 .seatPrice(BigDecimal.valueOf(500000))
                 .build();
-        Payment payment = builder().status(PaymentStatus.COMPLETE).build();
+        Payment payment = Payment.builder().status(PaymentStatus.COMPLETE).build();
 
         when(paymentRepository.savePayment(any(Payment.class))).thenReturn(Optional.ofNullable(payment));
 
         //when
-        Payment result = paymentService.createPayment(reservationInfo);
+        Payment result = paymentService.pay(reservationInfo, "jwt-token");
 
         //then
         assertThat(result.getStatus()).isEqualTo(PaymentStatus.COMPLETE);
@@ -62,7 +61,7 @@ class PaymentServiceTest {
                 .build();
 
         // when // then
-        assertThatThrownBy(() -> paymentService.createPayment(reservationInfo))
+        assertThatThrownBy(() -> paymentService.pay(reservationInfo, "jwt-token"))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(PAYMENT_IS_FAILED);

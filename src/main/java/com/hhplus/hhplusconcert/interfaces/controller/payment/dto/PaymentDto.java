@@ -22,8 +22,7 @@ public class PaymentDto {
     public record Response(
             Long paymentId,
             Payment.PaymentStatus status,
-            BigDecimal paymentPrice,
-            BigDecimal balance
+            BigDecimal paymentPrice
     ) {
 
         public static PaymentDto.Response of(Payment payment) {
@@ -31,7 +30,6 @@ public class PaymentDto {
                     .paymentId(payment.getPaymentId())
                     .status(payment.getStatus())
                     .paymentPrice(payment.getPaymentPrice())
-                    .balance(payment.getBalance())
                     .build();
         }
     }

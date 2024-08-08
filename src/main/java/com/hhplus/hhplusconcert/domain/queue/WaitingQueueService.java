@@ -17,7 +17,6 @@ import static com.hhplus.hhplusconcert.domain.queue.WaitingQueueConstants.ENTER_
 
 @Service
 @RequiredArgsConstructor
-
 public class WaitingQueueService {
 
     private final JwtUtils jwtUtils;

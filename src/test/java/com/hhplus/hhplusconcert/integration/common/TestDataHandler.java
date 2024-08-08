@@ -10,6 +10,7 @@ import com.hhplus.hhplusconcert.infrastructure.payment.PaymentRepositoryImpl;
 import com.hhplus.hhplusconcert.infrastructure.user.UserRepositoryImpl;
 import com.hhplus.hhplusconcert.support.utils.DateUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,9 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.hhplus.hhplusconcert.domain.concert.Seat.builder;
-
 @Component
+@Transactional
 public class TestDataHandler {
     public TestDataHandler(ConcertRepositoryImpl concertRepository, PaymentRepositoryImpl paymentRepository,
                            UserRepositoryImpl userRepository) {
@@ -73,7 +73,7 @@ public class TestDataHandler {
 
         for (int i = 1; i <= totalSeatCnt; i++) {
             if (i <= 20) { // C class
-                seats.add(builder()
+                seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(120000))
                         .concertDateInfo(savedConcertDates.get(0))
@@ -81,7 +81,7 @@ public class TestDataHandler {
                         .status(Seat.SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 30) { // B class
-                seats.add(builder()
+                seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(150000))
                         .concertDateInfo(savedConcertDates.get(0))
@@ -89,7 +89,7 @@ public class TestDataHandler {
                         .status(Seat.SeatStatus.UNAVAILABLE)
                         .build());
             } else if (i <= 40) { // A class
-                seats.add(builder()
+                seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(170000))
                         .concertDateInfo(savedConcertDates.get(0))
@@ -97,7 +97,7 @@ public class TestDataHandler {
                         .status(Seat.SeatStatus.AVAILABLE)
                         .build());
             } else {
-                seats.add(builder()
+                seats.add(Seat.builder()
                         .seatNumber(i)
                         .price(BigDecimal.valueOf(190000))
                         .concertDateInfo(savedConcertDates.get(0))
@@ -113,6 +113,7 @@ public class TestDataHandler {
         return userRepository.saveUser(User.builder()
                 .balance(balance).build()).get();
     }
+
 
     public void reserveSeats() {
         Long concertId = 1L;

@@ -3,7 +3,6 @@ package com.hhplus.hhplusconcert.infrastructure.concert;
 import com.hhplus.hhplusconcert.domain.concert.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +14,6 @@ import static java.time.LocalDateTime.now;
 
 @Repository
 @RequiredArgsConstructor
-@Transactional
 public class ConcertRepositoryImpl implements ConcertRepository {
 
     private final ConcertJpaRepository concertJpaRepository;

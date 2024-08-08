@@ -3,6 +3,7 @@ package com.hhplus.hhplusconcert.domain.concert;
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ import static java.time.LocalDateTime.now;
 
 @Builder(toBuilder = true)
 @Getter
+@ToString
 public class ConcertReservationInfo {
 
     private Long reservationId;
