@@ -1,30 +1,32 @@
 package com.hhplus.hhplusconcert.domain.queue;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.hhplus.hhplusconcert.domain.user.User;
+
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface WaitingQueueRepository {
-    List<WaitingQueue> getTokens(Long userId);
-
-    Optional<WaitingQueue> getToken(Long userId, String token);
-
-    Optional<WaitingQueue> getToken(String token);
-
 
     Optional<WaitingQueue> saveQueue(WaitingQueue queue);
 
-    long getWaitingCnt();
-
-    long getWaitingCnt(LocalDateTime requestTime);
-
     long getActiveCnt();
 
-    List<WaitingQueue> getWaitingTokens();
+    Set<String> getWaitingTokens();
 
-    List<WaitingQueue> getActiveOver10min();
+    void saveActiveQueue(User user, String token);
 
-    Optional<WaitingQueue> getActiveToken(Long userId);
+    void deleteWaitingQueue(User user, String token);
 
-    void deleteExpiredTokens();
+    Long getMyWaitingNum(User user, String token);
+
+    void saveWaitingQueue(User user, String token);
+
+    void deleteWaitingTokens();
+
+    void saveActiveQueues(Set<String> waitingTokens);
+
+    void deleteExpiredToken(String token);
+
+    void setTimeout(String key, long timeout, TimeUnit unit);
 }

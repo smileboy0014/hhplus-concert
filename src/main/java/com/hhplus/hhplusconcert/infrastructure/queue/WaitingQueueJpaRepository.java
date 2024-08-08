@@ -9,18 +9,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static com.hhplus.hhplusconcert.domain.queue.WaitingQueue.WaitingQueueStatus;
-
 public interface WaitingQueueJpaRepository extends JpaRepository<WaitingQueueEntity, Long> {
-    long countByStatusIs(WaitingQueueStatus active);
+    long countByStatusIs(WaitingQueue.WaitingQueueStatus active);
 
-    List<WaitingQueueEntity> findAllByStatusIsOrderByRequestTime(WaitingQueueStatus status);
+    List<WaitingQueueEntity> findAllByStatusIsOrderByRequestTime(WaitingQueue.WaitingQueueStatus status);
 
     @Query("SELECT w FROM WaitingQueueEntity w JOIN FETCH w.user u WHERE u.userId = :userId AND w.token = :token")
     Optional<WaitingQueueEntity> findByUserIdAndToken(@Param("userId") Long userId,
                                                       @Param("token") String token);
 
-    long countByRequestTimeBeforeAndStatusIs(LocalDateTime requestTime, WaitingQueueStatus wait);
+    long countByRequestTimeBeforeAndStatusIs(LocalDateTime requestTime, WaitingQueue.WaitingQueueStatus wait);
 
     Optional<WaitingQueueEntity> findByToken(String token);
 
@@ -28,9 +26,5 @@ public interface WaitingQueueJpaRepository extends JpaRepository<WaitingQueueEnt
     List<WaitingQueueEntity> getActiveOver10Min(@Param("timeThreshold") LocalDateTime timeThreshold,
                                                 @Param("status") WaitingQueue.WaitingQueueStatus status);
 
-    List<WaitingQueueEntity> findAllByUser_userId(Long userId);
-
-    Optional<WaitingQueueEntity> findByUser_userIdAndStatusIs(Long userId, WaitingQueueStatus active);
-
-    void deleteAllInBatchByStatusIs(WaitingQueueStatus expired);
+    void deleteAllInBatchByStatusIs(WaitingQueue.WaitingQueueStatus expired);
 }

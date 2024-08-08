@@ -3,7 +3,6 @@ package com.hhplus.hhplusconcert.application;
 import com.hhplus.hhplusconcert.application.queue.WaitingQueueFacade;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueue;
 import com.hhplus.hhplusconcert.domain.queue.WaitingQueueService;
-import com.hhplus.hhplusconcert.domain.queue.command.TokenCommand;
 import com.hhplus.hhplusconcert.domain.queue.command.WaitingQueueCommand;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserService;
@@ -34,10 +33,10 @@ class WaitingQueueFacadeTest {
     }
 
     @Test
-    @DisplayName("토큰 발급 유즈케이스를 실행한다.")
-    void issueToken() {
+    @DisplayName("토큰을 발급하고, 대기열 정보를 확인하는 유즈케이스를 실행한다.")
+    void checkWaiting() {
         // given
-        TokenCommand.Create command = new TokenCommand.Create(1L);
+        WaitingQueueCommand.Create command = new WaitingQueueCommand.Create(1L, "jwt-token");
         User user = User.builder()
                 .userId(command.userId())
                 .build();
@@ -46,57 +45,23 @@ class WaitingQueueFacadeTest {
                 .status(WaitingQueue.WaitingQueueStatus.ACTIVE).build();
 
         when(userService.getUser(command.userId())).thenReturn(user);
-        when(waitingQueueService.issueToken(command.userId())).thenReturn("jwt-token");
-        when(waitingQueueService.enterQueue(any(User.class), any(String.class))).thenReturn(queue);
+        when(waitingQueueService.checkWaiting(any(User.class), any(String.class))).thenReturn(queue);
 
         // when
-        WaitingQueue result = waitingQueueFacade.issueToken(command);
+        WaitingQueue result = waitingQueueFacade.checkWaiting(command);
 
         // then
         assertThat(result.getStatus()).isEqualTo(WaitingQueue.WaitingQueueStatus.ACTIVE);
     }
 
-
-    @Test
-    @DisplayName("대기열을 확인하는 유즈케이스를 실행한다.")
-    void checkQueue() {
-        // given
-        WaitingQueueCommand.Create command = new WaitingQueueCommand.Create(1L, "jwt-token");
-        User user = User.builder()
-                .userId(command.userId())
-                .build();
-
-        WaitingQueue queue = WaitingQueue.builder()
-                .status(WaitingQueue.WaitingQueueStatus.WAIT).build();
-
-        when(waitingQueueService.checkQueue(command.userId(), command.token())).thenReturn(queue);
-
-        // when
-        WaitingQueue result = waitingQueueFacade.checkQueue(command);
-
-        // then
-        assertThat(result.getStatus()).isEqualTo(WaitingQueue.WaitingQueueStatus.WAIT);
-
-    }
-
     @Test
     @DisplayName("대기열에 있는 토큰을 순차적으로 active 시키는 유즈케이스를 실행한다.")
     void active() {
-        // given // when
-        waitingQueueFacade.active();
+        //given //when
+        waitingQueueService.activeTokens();
 
-        // then
-        verify(waitingQueueService).activeToken(null);
-    }
-
-    @Test
-    @DisplayName("시간이 만료된 active token 을 expired 시키는 유즈케이스를 실행한다.")
-    void expire() {
-        // given // when
-        waitingQueueService.expireToken();
-
-        // then
-        verify(waitingQueueService).expireToken();
+        //then
+        verify(waitingQueueService).activeTokens();
     }
 
 }

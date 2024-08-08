@@ -14,26 +14,11 @@ public class WaitingQueueScheduler { // 대기열 관련 스케줄러
     private final WaitingQueueFacade waitingQueueFacade;
 
     /**
-     * token을 active 하는 스케줄러 5초마다 실행
+     * token을 active 하는 스케줄러 10초마다 실행
      */
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 1000 * 10)
     public void activeToken() {
         waitingQueueFacade.active();
     }
 
-    /**
-     * token을 expired 하는 스케줄러 5초마다 실행
-     */
-    @Scheduled(fixedRate = 5000)
-    public void expireToken() {
-        waitingQueueFacade.expire();
-    }
-
-    /**
-     * expired 된 토큰을 1분 마다 삭제하는 스케줄러 실행
-     */
-    @Scheduled(fixedRate = 1 * 1000 * 60)
-    public void deleteAllExpireWaitingQueue() {
-        waitingQueueFacade.deleteAllExpireToken();
-    }
 }

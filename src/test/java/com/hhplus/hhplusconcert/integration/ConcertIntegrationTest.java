@@ -1,6 +1,7 @@
 package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.domain.concert.ConcertRepository;
+import com.hhplus.hhplusconcert.domain.concert.ConcertService;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDateDto;
 import com.hhplus.hhplusconcert.interfaces.controller.concert.dto.ConcertDto;
@@ -11,17 +12,37 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
+@EnableCaching
 class ConcertIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private ConcertRepository concertRepository;
+
+    @Autowired
+    private CacheManager l1LocalCacheManager;
+
+    @Autowired
+    private RedisCacheManager l2RedisCacheManager;
+
+
+    @Autowired
+    RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    ConcertService concertService;
+
 
     private static final String PATH = "/api/v1/concerts";
 
@@ -157,4 +178,22 @@ class ConcertIntegrationTest extends BaseIntegrationTest {
         });
     }
 
+    @Test
+    @DisplayName("캐싱된 데이터를 가져오는게 더 속도가 빠르다.")
+    void GetConcertsWithCache() {
+        // given
+        long startTimeWithoutCache = System.nanoTime();
+        concertService.getConcerts();
+        long endTimeWithoutCache = System.nanoTime();
+        long durationWithoutCache = endTimeWithoutCache - startTimeWithoutCache;
+
+        // when
+        long startTimeWithCache = System.nanoTime();
+        concertService.getConcerts();
+        long endTimeWithCache = System.nanoTime();
+        long durationWithCache = endTimeWithCache - startTimeWithCache;
+
+        // then
+        assertThat(durationWithCache).isLessThan(durationWithoutCache);
+    }
 }

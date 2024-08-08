@@ -48,7 +48,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         // token의 값이 존재하는지 확인
         Long userId = jwtUtils.resolveToken(token);
-        // 토큰이 유효한 토큰인지 검증
+        // 유효한 유저 및 token 인지 검증
         jwtUtils.validToken(userId, token);
         return true;
     }

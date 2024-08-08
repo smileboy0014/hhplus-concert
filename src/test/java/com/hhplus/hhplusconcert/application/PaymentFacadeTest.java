@@ -29,9 +29,6 @@ class PaymentFacadeTest {
     ConcertService concertService;
     @Mock
     UserService userService;
-    @Mock
-    WaitingQueueService waitingQueueService;
-
     @InjectMocks
     PaymentFacade paymentFacade;
 
@@ -45,7 +42,7 @@ class PaymentFacadeTest {
     @DisplayName("결제 요청을 하는 유즈케이스를 실행한다.")
     void pay() {
         // given
-        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L);
+        PaymentCommand.Create command = new PaymentCommand.Create(1L, 1L, "jwt-token");
         ConcertReservationInfo reservation = ConcertReservationInfo.builder()
                 .userId(1L)
                 .seatPrice(BigDecimal.valueOf(100000))
