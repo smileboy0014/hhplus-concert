@@ -23,6 +23,8 @@ public class Seat {
 
     private ConcertDate concertDateInfo;
 
+    private Long concertDateId;
+
     private int seatNumber;
 
     private BigDecimal price;
