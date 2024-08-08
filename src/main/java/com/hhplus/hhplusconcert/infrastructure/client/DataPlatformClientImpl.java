@@ -14,7 +14,7 @@ public class DataPlatformClientImpl implements DataPlatformClient {
     @Override
     public boolean sendPaymentResult(Payment payment) {
         try {
-            Thread.sleep(4000);
+            Thread.sleep(1000);
             log.info("[DataPlatformClient] : SUCCESS Send PaymentResult :  {}", payment);
         } catch (InterruptedException e) {
             throw new CustomException(DATA_PLATFORM_SEND_FAIL, DATA_PLATFORM_SEND_FAIL.getMsg());

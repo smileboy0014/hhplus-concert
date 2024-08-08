@@ -13,7 +13,7 @@ public class PushClientImpl implements PushClient {
     @Override
     public boolean pushKakaotalk() {
         try {
-            Thread.sleep(4000);
+            Thread.sleep(1000);
             log.info("[PushClient] : SUCCESS Push Kakaotalk ");
         } catch (InterruptedException e) {
             throw new CustomException(PUSH_KAKAOTALK_MESSAGE_FAIL, PUSH_KAKAOTALK_MESSAGE_FAIL.getMsg());
