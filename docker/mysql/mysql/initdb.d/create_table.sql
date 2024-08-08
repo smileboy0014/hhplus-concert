@@ -53,13 +53,16 @@ CREATE TABLE IF NOT EXISTS seat
     price           DECIMAL(38, 2),
     status          ENUM ('AVAILABLE','UNAVAILABLE'),
     version         INT    NOT NULL DEFAULT 1,
-    ticket_class    VARCHAR(255),
+    ticket_class    ENUM ('S','A','B','C'),
     created_at      DATETIME(6),
     updated_at      DATETIME(6),
     PRIMARY KEY (seat_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci;
+
+CREATE INDEX IDX_SEAT_STATUS ON seat (concert_date_id, status); # 성능 향상을 위한 복합 인덱스 추가
+CREATE INDEX IDX_SEAT_COVERING ON seat (concert_date_id, status, seat_id, seat_number, price, created_at, updated_at, ticket_class, version); # 성능 향상을 위한 커버링 인덱스 추가
 
 -- user 테이블 생성
 CREATE TABLE IF NOT EXISTS users
