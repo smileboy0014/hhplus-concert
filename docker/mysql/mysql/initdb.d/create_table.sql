@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS seat
     price           DECIMAL(38, 2),
     status          ENUM ('AVAILABLE','UNAVAILABLE'),
     version         INT    NOT NULL DEFAULT 1,
-    ticket_class    VARCHAR(255),
+    ticket_class    ENUM ('S','A','B','C'),
     created_at      DATETIME(6),
     updated_at      DATETIME(6),
     PRIMARY KEY (seat_id)
