@@ -554,6 +554,569 @@ redis나 db 가 받는 부하도 합쳐서 60 % 넘지 않는 것으로 보였�
 → 위 내용을 바탕으로 나는 10초에 6,000명씩 대기열 유저를 활성화시키기로 했다!
 
 ---
+## Query 분석 및 DB Index 설계
+
+조회를 할 때 데이터가 얼마 없을 때는 상관없지만, 데이터가 수천, 수만 건의 경우 인덱스가 있냐 없냐의 따라 성능 차이가 엄청 크다고 한다.
+
+보통 인덱스는 카디널리티가 높은(중복도가 낮은) 컬럼으로 설정한다고 한다. (참고로 **pk는 기본으로 인덱스로 설정되어 있음**)
+
+예를 들어 주민등록번호의 경우 카디널리티가 높다고 할 수 있다.(Unique 하기 때문에)
+
+지금 나의 시나리오(콘서트 대기열)에서 인덱스 추가를 통해 성능을 개선할 수 있는 부분이 있는지 알아보자.
+
+### 문제
+
+`콘서트 예약 가능한 좌석을 조회하는 API` 의 경우, 실제로 하나의 콘서트장에 5만명이 앉을 수 있는 대형 장소에서 하는 경우가 많다. 콘서트가 1만개만 있어도, 콘서트 좌석 조회하는 데이터는 5억개의 자리의 데이터가 들어가 있을 것이다.
+
+### 원인
+
+테스트로 좌석 데이터를 1000만건을 넣어서 조회를 했을 때, 원하는 날짜의 좌석을 조회하는데 응답속도가 **3~3.5s** 정도 나왔다.(하나의 콘서트가 **5만~10만** 개의 좌석을 가진다고 했을 때)
+
+```sql
+select COUNT(*) from seat
+```
+
+![q1](docs/image/q1.png)
+
+postman을 통해서 API 조회를 해보면
+
+![q2](docs/image/q2.png)
+
+약 **3~3.5s** 사이로 응답시간이 나온다.
+
+이렇게 응답 지연이 생기는 이유는 따로 인덱스를 추가 안했기 때문에 DB에 풀스캔이 발생하여 그렇다.
+
+![q3](docs/image/q3.png)
+
+### 해결 방법
+
+인덱스를 추가함으로써 문제를 해결해 볼 수 있을 것이다. 실제 예약 가능한 좌석 조회의 쿼리는 다음과 같다.
+
+```java
+Hibernate: 
+    select
+        se1_0.seat_id,
+        se1_0.concert_date_id,
+        cdi1_0.concert_date_id,
+        cdi1_0.concert_date,
+        cdi1_0.concert_id,
+        ci1_0.concert_id,
+        ci1_0.created_at,
+        ci1_0.name,
+        ci1_0.updated_at,
+        cdi1_0.created_at,
+        cdi1_0.place_id,
+        pi1_0.place_id,
+        pi1_0.created_at,
+        pi1_0.name,
+        pi1_0.total_seat,
+        pi1_0.updated_at,
+        cdi1_0.updated_at,
+        se1_0.created_at,
+        se1_0.price,
+        se1_0.seat_number,
+        se1_0.status,
+        se1_0.ticket_class,
+        se1_0.updated_at,
+        se1_0.version 
+    from
+        seat se1_0 
+    join
+        concert_date cdi1_0 
+            on cdi1_0.concert_date_id=se1_0.concert_date_id 
+    join
+        concert ci1_0 
+            on ci1_0.concert_id=cdi1_0.concert_id 
+    join
+        place pi1_0 
+            on pi1_0.place_id=cdi1_0.place_id 
+    where
+        se1_0.concert_date_id=? 
+        and se1_0.status=?
+```
+
+여기서 where 절에 `concert_date_id` 와 `status`  조건을 거는 걸 볼 수 있다.
+
+그래서 저 컬럼들을 인덱스로 걸면서 테스트를 진행해 볼 예정이다.
+
+1) **(status) 인덱스 설정 했을 경우**
+
+다음 쿼리를 실행하여 `status` 에 대한 인덱스 설정을 하였다.
+
+```sql
+CREATE INDEX IDX_SEAT_STATUS ON seat (status);
+```
+
+그리고 API를 조회해보니
+
+![q4](docs/image/q4.png)
+
+50~55s 결과가 나왔다.
+
+2) **(concert_date_id) 를 인덱스 설정 했을 경우**
+
+```sql
+CREATE INDEX IDX_SEAT_STATUS ON seat (concert_date_id);
+```
+
+결과는
+
+![q5](docs/image/q5.png)
+
+190 ~ 210 ms 정도 나온다.
+
+3) **(concert_date_id, status) 를 인덱스 설정 했을 경우**
+
+```sql
+CREATE INDEX IDX_SEAT_STATUS ON seat (concert_date_id, status);
+```
+
+- 결과는
+
+![q6](docs/image/q6.png)
+
+150 ~ 170 ms 가 나왔다!!!
+
+4) **(status, concert_date_id) 를 인덱스 설정 했을 경우**
+
+```sql
+CREATE INDEX IDX_SEAT_STATUS ON seat (status, concert_date_id);
+```
+
+- 결과
+
+![q7](docs/image/q7.png)
+
+160 ~ 180 ms
+
+결과를 정리하면 다음과 같다.
+
+| idx | x | (status) | (concert_date_id) | (concert_date_id, status) | (status, concert_date_id) |
+| --- | --- | --- | --- | --- | --- |
+| 속도(sec) | 3.2~3.5s | 50~55s | 0.19~0.21s | 0.15~0.17s | 0.16~0.18s |
+| 증가율 |  | -16배 | +17배 | +21배 | +20배 |
+
+이걸 통해서 알 수 있는 점은
+
+- 잘못된 인덱스 설정은 오히려 **성능을 떨어트릴 수 있다.**
+- 인덱스 설정을 통해 최대 **약 20배 이상**의 성능 향상을 경험할 수 있다.
+- 보통은 **카디널리티가 높은**(중복도가 낮은) 인덱스부터 인덱스를 걸어주는 것이 좋다.
+
+복합 인덱스의 카디널리티는 다음과 같다.
+
+SHOW 명령어를 사용하면 해당 테이블의 카디널리티를 구할 수 있다.
+
+```sql
+SHOW index from seat;
+```
+
+![q8](docs/image/q8.png)
+
+### 커버링 인덱스
+
+**커버링 인덱스(Covering Index)**는 쿼리에 필요한 모든 컬럼을 포함하는 인덱스로, 데이터베이스가 실제 테이블 데이터를 조회할 필요 없이 인덱스만으로 쿼리를 효과적으로 조회가 가능하다.
+
+커버링 인덱스를 잘 쓰면(특히, 대용량 데이터 처리 시), **조회 성능을 상당 부분 높일 수 있다.**
+
+성능 향상을 위해 한번 커버링 인덱스를 생성해 보았다.
+
+```sql
+CREATE INDEX IDX_SEAT_COVERING ON seat (concert_date_id, status, seat_id, seat_number, price, created_at, updated_at, ticket_class, version)
+```
+
+이걸 실행하면 제대로 커버링 인덱스를 사용하고 있는지 알 수 있다.
+
+```sql
+EXPLAIN SELECT se.seat_id,
+       se.concert_date_id,
+       cdi.concert_date_id,
+       cdi.concert_date,
+       cdi.concert_id,
+       ci.concert_id,
+       ci.created_at,
+       ci.name,
+       ci.updated_at,
+       cdi.created_at,
+       cdi.place_id,
+       pi.place_id,
+       pi.created_at,
+       pi.name,
+       pi.total_seat,
+       pi.updated_at,
+       cdi.updated_at,
+       se.created_at,
+       se.price,
+       se.seat_number,
+       se.status,
+       se.ticket_class,
+       se.updated_at,
+       se.version
+FROM seat se
+         JOIN
+     concert_date cdi ON cdi.concert_date_id = se.concert_date_id
+         JOIN
+     concert ci ON ci.concert_id = cdi.concert_id
+         JOIN
+     place pi ON pi.place_id = cdi.place_id
+WHERE se.concert_date_id = 100
+  AND se.status = 'AVAILABLE';
+```
+
+결과를 보면
+
+![q9](docs/image/q9.png)
+
+Extra컬럼의 값이 `Using index` 가 있는 걸 알 수있다.
+
+제일 성능이 좋았던 때랑 비교해보면
+
+![q10](docs/image/q10.png)
+
+**0.14~0.15** s 로, 0.01초 정도 더 단축된 것을 볼 수 있다!
+
+혹시 조인 되는 테이블에도 커버링 인덱스를 걸면 성능 향상이 있을 것같아서 다음과 같이 걸어보았다.
+
+```sql
+CREATE INDEX IDX_PLACE_COVERING ON place (place_id, name, created_at, updated_at, total_seat);
+CREATE INDEX IDX_CONCERT_COVERING ON concert (concert_id, name, created_at, updated_at);
+CREATE INDEX IDX_CONCERT_DATE_COVERING ON concert_date (concert_date_id, concert_date, created_at, updated_at);
+```
+
+하지만 결과는 Extra에 null로 위의 실행결과와 같았다.
+
+![q11](docs/image/q11.png)
+
+커버링 인덱스를 걸었을 때 카디널리티를 보면 다음과 같다.
+
+![q12](docs/image/q12.png)
+
+결과로 봤을때도 커버링 인덱스를 사용했을 때 카디널리티가 더 높아서, 쿼리 성능이 더 좋아질 수 있다는 것을 볼 수 있다.
+
+
+---
+## 트랜잭션의 범위 및 내부 로직 융합에 따른 문제점 파악
+
+### 문제
+
+결제 API 쪽 비즈니스 로직의 트랜잭션 생명주기가 길다.
+
+결제 API 쪽을 한번 살펴보자.
+
+```java
+
+@Component
+@RequiredArgsConstructor
+public class PaymentFacade {
+
+    private final PaymentService paymentService;
+    private final UserService userService;
+    private final ConcertService concertService;
+    private final WaitingQueueService waitingQueueService;
+
+    /**
+     * 결제 요청하는 유즈케이스를 실행한다.
+     *
+     * @param command reservationId, userId 정보
+     * @return PaymentResponse 결제 결과를 반환한다.
+     */
+    @Transactional
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
+    public Payment pay(PaymentCommand.Create command) {
+        // 1. 예약 완료
+        ConcertReservationInfo completeReservation = concertService.completeReservation(command);
+
+        // 2. 결제 내역 생성
+        Payment payment = paymentService.createPayment(completeReservation);
+
+        // 3. 잔액 차감
+        User user = userService.usePoint(completeReservation.getUserId(),
+                completeReservation.getSeatPrice());
+
+        // 4. 토큰 만료
+        waitingQueueService.forceExpireToken(command.token());
+				
+				// 5. 결제 정보 반환
+        return Payment.builder()
+                .paymentId(payment.getPaymentId())
+                .paymentPrice(payment.getPaymentPrice())
+                .status(payment.getStatus())
+                .balance(user.getBalance())
+                .paidAt(payment.getPaidAt())
+                .build();
+    }
+}
+```
+
+비즈니스 로직은 흐름은 다음과 같다.
+
+```java
+1. 예약 완료 -> 2. 결제 내역 생성 -> 3. 잔액 차감 -> 4. 토큰 만료 -> 5. 결제 정보 반환
+```
+
+### 원인
+
+그럼 이렇게 트랜잭션의 범위가 큰 이유는 무엇일까?
+
+하나의 트랜잭션에서 **여러가지 비즈니스 로직을 처리하려고 하기 때문**이다.
+
+그럼 이렇게 트랜잭션의 범위가 클 경우 어떤 문제들이 발생할 수 있을까?
+
+- 긴 생명 주기의 Transaction 의 경우, 오랜 시간은 소요되나 후속 작업에 의해 전체 트랜잭션이 실패할 수 있음
+- 혹은 트랜잭션 범위 내에서 DB 와 무관한 작업을 수행하고 있는 경우(외부 API 호출), 외부 API 로직이 실패한다면 우리 로직이 성공했어도 롤백 처리가 될 수 있다.
+
+### 해결방법
+
+다양한 해결방법이 있겠지만, **관점 지향적**으로 문제를 살펴보면 문제를 쉽게 해결할 수 있다.
+
+즉, **애플리케이션 이벤트를 통해 관심사를 분리한다면** 트랜잭션 범위도 작아지고, 각 `Event` 에 의해 `본인의 관심사만 수행하도록 하여` 비즈니스 로직간의 의존을 줄일 수 있다!
+
+여기서 주의할 점은, 이벤트를 나눌 때 **각 작업의 관계나 의존**이 어떻게 되는지를 잘 고려해야 한다.
+
+→ `보상 트랜잭션`이나 `SAGA` 패턴을 도입 가능하다.
+
+### 적용
+
+우선 `주요 로직`과 `부가 로직`을 생각해 보았다.
+
+- 주요 로직
+  - 예약 완료
+  - 결제 내역 생성
+  - 포인트 차감
+  - 토큰 만료
+
+
+- 부가 로직
+  - 푸쉬 이벤트
+  - 결제 정보 전달
+
+**부가 로직**은 결제의 **주요 로직**에 영향을 끼치면 안된다.
+
+이를 토대로 이벤트를 나누면 다음과 같이 나눌 수 있다.
+
+```sql
+원래 로직(1. 예약 완료 -> 2. 결제 내역 생성) -> event publish!
+ 
+-> 3. 잔액 차감 (event listen, before commit)
+-> 4. 토큰 만료 (event listen, before commit)
+-> 5. 푸쉬 이벤트 (event listen, after commit, @async)
+-> 6. 결제 정보 전달 (event listen, after commit, @async)
+```
+
+여기서 트랜잭션 event listener 로 `@TransactionalEventListener` 사용할 수 있는데, 주요 로직의 문제가 생겼을 때 함께 Rollback이 발생해야함으로 *`TransactionPhase.BEFORE_COMMIT`* 옵션으로 설정하였다.
+
+실제 코드로 적용된 걸 보면 다음과 같다.
+
+- PaymentFacade
+
+```java
+@Component
+@RequiredArgsConstructor
+public class PaymentFacade {
+
+    private final PaymentService paymentService;
+    private final ConcertService concertService;
+
+    /**
+     * 결제 요청하는 유즈케이스를 실행한다.
+     *
+     * @param command reservationId, userId 정보
+     * @return PaymentResponse 결제 결과를 반환한다.
+     */
+    @Transactional
+    @DistributedLock(key = "'userLock'.concat(':').concat(#command.userId())")
+    public Payment pay(PaymentCommand.Create command) {
+        // 1. 예약 완료
+        ConcertReservationInfo reservation = concertService.completeReservation(command);
+        // 2. 결제 진행 및 결제 정보 반환
+        return paymentService.pay(reservation, command.token());
+    }
+    
+    ...
+    
+  }
+```
+
+- PaymentService
+
+```java
+@Service
+@RequiredArgsConstructor
+public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final ApplicationEventPublisher publisher;
+
+    /**
+     * 결제를 요청하면 결제 정보를 반환한다.
+     *
+     * @param reservationInfo 결제 요청 정보
+     * @return PaymentResponse 결제 정보를 반환한다.
+     */
+    @Transactional
+    public Payment pay(ConcertReservationInfo reservationInfo, String token) {
+
+        Payment payment = Payment.builder()
+                .concertReservationInfo(reservationInfo)
+                .paymentPrice(reservationInfo.getSeatPrice())
+                .paidAt(now())
+                .status(Payment.PaymentStatus.COMPLETE).build();
+
+        // 1. 결제 내역 생성
+        Optional<Payment> completePayment = paymentRepository.savePayment(payment);
+
+        if (completePayment.isEmpty()) {
+            throw new CustomException(PAYMENT_IS_FAILED, "결제 완료 내역 생성에 실패하였습니다");
+        }
+        // 2. 결제 완료 이벤트 발행
+        publisher.publishEvent(new PaymentEvent(this, reservationInfo, payment, token));
+
+        return completePayment.get();
+    }
+    
+    ...
+}
+```
+
+이렇게 이벤트를 발행하면 `PaymentEvent` 를 수신하는 모든 Listener들이 동작을 한다.(브로드캐스팅 방식이라고도 함)
+
+- UserEventListener
+
+```java
+@Component
+@RequiredArgsConstructor
+public class UserEventListener {
+
+    private final UserService userService;
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void onPaymentEvent(PaymentEvent event) {
+        // 잔액 차감
+        userService.usePoint(event.getReservationInfo().getUserId(),
+                event.getReservationInfo().getSeatPrice());
+    }
+}
+```
+
+- QueueEventListener
+
+```java
+@Component
+@RequiredArgsConstructor
+public class QueueEventListener {
+
+    private final WaitingQueueService waitingQueueService;
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void onPaymentEvent(PaymentEvent event) {
+        waitingQueueService.forceExpireToken(event.getToken());
+    }
+}
+```
+
+- PaymentEventListener
+
+```java
+@Component
+@RequiredArgsConstructor
+public class PaymentEventListener {
+
+    private final DataPlatformClient dataPlatformClient;
+
+    private final PushClient pushClient;
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPaymentEvent(PaymentEvent event) {
+        // 결제 정보 전달
+        dataPlatformClient.sendPaymentResult(event.getPayment());
+        // kakaotalk 알람 전달
+        pushClient.pushKakaotalk();
+    }
+}
+```
+
+이렇게 이벤트를 나눠서 관리함으로써 **코드의 모듈성을 높이고,** **각 클래스가 특정 작업에만 집중하도록 도와줍니다.(응집력을 높여줌)**
+
+---
+
+## MSA 형태로 서비스 분리 설계
+
+만약 지금의 서비스를 MSA로 분리한다면 어떻게 설계가 되어야 할까?
+
+### 서비스 분리
+
+일단 지금의 서비스가 MSA로 분리된다면, 4개의 서비스와 하나의 부가 모듈로 총 5개로 나눠질 것이다.
+
+- **Payment Service**: 결제 처리와 관련된 처리
+- **User Service**: 사용자 관리 및 포인트 처리
+- **Concert Service**: 공연, 좌석 예약 관리
+- **Waiting Queue Service**: 대기열 관리 및 토큰 처리
+- **Client Module** : 외부 서비스와의 통신을 위한 모듈
+
+![msa1](docs/image/msa1.png)
+
+
+### 분산 트랜잭션의 한계
+
+이렇게 MSA로 서비스로 분리하면 트랜잭션도 하나로 관리되는 것이 아니라 분산되어 관리가 된다. 그럼 어떤 문제점들이 발생할까?
+
+- MSA에서 트랜잭션이 여러 서비스에 걸쳐 있을 때, ACID 트랜잭션 보장이 어렵다. 특히, 데이터 일관성과 원자성 유지에 문제가 발생할 수 있다.
+- 서비스 간 통신에 네트워크 지연이 발생할 수 있으며, 이는 전체 트랜잭션 생명 주기를 늘릴 수 있다.
+- 한 서비스에서 실패가 발생할 경우, 다른 서비스에 대한 롤백 처리 또는 보상 트랜잭션 구현이 필요하다.
+
+### 해결 방안
+
+여러가지 해결방안이 있지만, `Saga`  패턴을 활용하면 분산 트랜잭션을 관리할 수 있다고 한다.
+
+### Saga 패턴
+
+그럼 Saga 패턴이란 무엇일까?
+
+- Saga Pattern은 마이크로 서비스에서 데이터 일관성을 관리하는 방법이다.
+- 각 서비스는 **로컬** **트랜잭션을** 가지고 있으며, 해당 서비스 데이터를 업데이트하며 **메시지 또는 이벤트를 발행**해서, 다음 단계 트랜잭션을 호출하게 된다.
+- 만약, 해당 프로세스가 실패하게 되면 데이터 정합성을 맞추기 위해 이전 트랜잭션에 대해 **보상 트랜잭션**을 실행한다.
+- NoSQL 같이 분산 트랜잭션 처리를 지원하지 않거나, 각기 다른 서비스에서 다른 DB 밴더사를 이용할 경우에도 Saga Pattenrn을 이용해서 데이터 일관성을 보장 받을 수 있다.
+
+→ 결국 정리하자면, Saga 패턴을 이용하면 각기 다른 분산 서베에 다른 DB 벤더사를 이용하고 있더라도 **데이터 일관성**을 보장받을 수 있다. 또한 트랜잭션 실패 시, 보상 트랜잭션을 통해 데이터 정합성을 보장할 수 있다.
+
+Saga 패턴은 크게 `Choreography` 방식과 `Orchestration`  방식이 있다고 한다.
+
+`Orchestration`  방식의 경우, 따로 트랜잭션을 관리하는 Saga 인스턴스가 별도로 존재해야 하기 때문에 좀 더 구현이 간단한 `Choreography`  방식으로 설계를 해보려고 한다.
+
+Choreography 방식이란?
+
+- Choreography 방식은 서비스끼리 직접적으로 통신하지 않고, 이벤트 **Pub/Sub을 활용해서** 통신하는 방식을 말한다.
+- 프로세스를 진행하다가 여러 서비스를 거쳐 서비스(Payment, User)에서 실패(예외처리 혹은 장애)가 난다면 **보상 트랜잭션 이벤트**를 발행한다.
+- 장점으론, 간단한 workflow에 적합하며 추가 서비스 구현 및 유지관리가 필요하지 않다.
+- 단점으론, 트랜잭션을 시뮬레이션하기 위해 모든 서비스를 실행해야하기 때문에 통합테스트와 디버깅이 어려운 점이 있다.
+
+**Kafka**를 도입하여 결제 프로세스를 진행한다면 아마 이런식으로 진행 될 것이다.
+
+- **정상적인 분산 트랜잭션 프로세스**
+
+![msa2](docs/image/msa2.png)
+
+1. 사용자가 결제 요청
+2. 결제 내역 생성
+3. 결제 완료 이벤트 발행
+4. 결제 완료 이벤트 리슨
+5. 콘서트 예약 완료
+6. 유저 포인트 차감
+7. Active 토큰 만료
+
+- **실패 분산 트랜잭션 프로세스**
+
+![msa3](docs/image/msa3.png)
+
+만약 포인트 차감에서 실패가 발생한다면
+
+- 생성된 결제 내역 삭제
+- 콘서트 상태 변경
+- 토큰 상태 변경
+
+이렇게 하면 보상 트랜잭션을 통해 주요로직에 문제가 발생하더라도, 모두 롤백이 되어 **데이터의 일관성**을 보장할 수 있다.
+
+---
 ## 회고
 
 ---

@@ -6,10 +6,14 @@ import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
 import com.hhplus.hhplusconcert.domain.payment.Payment;
 import com.hhplus.hhplusconcert.domain.payment.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
+import com.hhplus.hhplusconcert.domain.payment.event.PaymentEvent;
+import com.hhplus.hhplusconcert.domain.payment.listener.PaymentEventListener;
+import com.hhplus.hhplusconcert.domain.queue.listener.QueueEventListener;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserRepository;
 import com.hhplus.hhplusconcert.domain.user.UserService;
 import com.hhplus.hhplusconcert.domain.user.command.UserCommand;
+import com.hhplus.hhplusconcert.domain.user.listener.UserEventListener;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PaymentDto;
@@ -18,6 +22,7 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +34,9 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus;
 import static com.hhplus.hhplusconcert.domain.payment.Payment.PaymentStatus;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 
 class PaymentIntegrationTest extends BaseIntegrationTest {
@@ -52,6 +60,15 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private UserService userService;
+
+    @SpyBean
+    private PaymentEventListener paymentEventListener;
+
+    @SpyBean
+    private UserEventListener userEventListener;
+
+    @SpyBean
+    private QueueEventListener queueEventListener;
 
 
     @Test
@@ -270,6 +287,61 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
         // then
         assertSoftly(softly -> softly.assertThat(result.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(170000)));
+    }
+
+    @Test
+    @DisplayName("결제를 진행하면 결제 이벤트를 잘 받아서 이벤트리스너가 실행된다.")
+    void payWithEvent() {
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(300000));
+
+        PaymentDto.Request request = PaymentDto.Request.builder()
+                .reservationId(1L)
+                .userId(1L)
+                .token("jwt-token")
+                .build();
+
+        // when
+        ExtractableResponse<Response> result = post(LOCAL_HOST + port + PATH + "/pay", request);
+
+        // then
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getObject("data", PaymentDto.Response.class)
+                    .status()).isEqualTo(PaymentStatus.COMPLETE);
+        });
+
+        verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(paymentEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+    }
+
+    @Test
+    @DisplayName("aftercommit 전에 예외가 발생하면 모두 롤백되고,aftercommit 이벤트는 실행되지 않는다.")
+    void payWithEventForRollbackAndNotInvokeAfterCommitEvent(){
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(0));
+
+        PaymentDto.Request request = PaymentDto.Request.builder()
+                .reservationId(1L)
+                .userId(1L)
+                .token("jwt-token")
+                .build();
+
+        // when
+        ExtractableResponse<Response> result = post(LOCAL_HOST + port + PATH + "/pay", request);
+
+        // then
+        assertSoftly(softly -> {
+            softly.assertThat(result.statusCode()).isEqualTo(200);
+            softly.assertThat(result.body().jsonPath().getObject("msg", String.class))
+                    .contains(USER_NOT_ENOUGH_BALANCE.name());
+
+        });
+
+        verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(paymentEventListener, times(0)).onPaymentEvent(any(PaymentEvent.class));
     }
 
 }

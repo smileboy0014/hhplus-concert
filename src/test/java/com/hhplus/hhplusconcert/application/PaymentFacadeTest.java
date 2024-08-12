@@ -6,7 +6,6 @@ import com.hhplus.hhplusconcert.domain.concert.ConcertService;
 import com.hhplus.hhplusconcert.domain.payment.Payment;
 import com.hhplus.hhplusconcert.domain.payment.PaymentService;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
-import com.hhplus.hhplusconcert.domain.queue.WaitingQueueService;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +50,7 @@ class PaymentFacadeTest {
         User user = User.builder().build();
 
         when(concertService.completeReservation(command)).thenReturn(reservation);
-        when(paymentService.createPayment(reservation)).thenReturn(payment);
+        when(paymentService.pay(reservation, "jwt-token")).thenReturn(payment);
         when(userService.usePoint(reservation.getUserId(), reservation.getSeatPrice())).thenReturn(user);
 
         // when
