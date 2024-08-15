@@ -60,7 +60,17 @@ public enum ErrorCode {
     PUSH_KAKAOTALK_MESSAGE_FAIL("카카오톡 메세지를 전달하는데 실패하였습니다"),
 
     // Lock 관련
-    LOCK_ACQUIRE_FAILED("Lock을 획득하는데 실패하였습니다");
+    LOCK_ACQUIRE_FAILED("Lock을 획득하는데 실패하였습니다"),
+
+    // Outbox 관련
+    OUTBOX_IS_FAILED("outbox 데이터 생성에 실패하였습니다."),
+    OUTBOX_IS_NOT_FOUND("outbox 데이터가 존재하지 않습니다."),
+    OUTBOX_IS_ALREADY_DONE("이미 완료된 outbox 데이터 입니다."),
+    OUTBOX_IS_ALREADY_FAIL("이미 실패한 outbox 데이터 입니다."),
+    OUTBOX_IS_NOT_INIT_STATUS("outbox 데이터가 초기 상태가 아닙니다."),
+
+    // kafka 관련
+    KAFKA_PUBLISH_FAILED("kafka 메시지 발행에 실패하였습니다");
 
 
     private final String msg;
