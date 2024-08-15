@@ -56,6 +56,10 @@ public class Outbox {
         status = EventStatus.FAIL;
     }
 
+    public void restore() {
+        status = EventStatus.INIT;
+    }
+
     public enum EventType {
         PAYMENT,
     }
