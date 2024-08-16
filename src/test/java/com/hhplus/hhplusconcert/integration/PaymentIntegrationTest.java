@@ -1,13 +1,17 @@
 package com.hhplus.hhplusconcert.integration;
 
 import com.hhplus.hhplusconcert.application.payment.PaymentFacade;
+import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.concert.ConcertRepository;
 import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
+import com.hhplus.hhplusconcert.domain.outbox.Outbox;
+import com.hhplus.hhplusconcert.domain.outbox.OutboxRepository;
 import com.hhplus.hhplusconcert.domain.payment.Payment;
 import com.hhplus.hhplusconcert.domain.payment.PaymentRepository;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
 import com.hhplus.hhplusconcert.domain.payment.event.PaymentEvent;
 import com.hhplus.hhplusconcert.domain.payment.listener.PaymentEventListener;
+import com.hhplus.hhplusconcert.domain.producer.EventProducer;
 import com.hhplus.hhplusconcert.domain.queue.listener.QueueEventListener;
 import com.hhplus.hhplusconcert.domain.user.User;
 import com.hhplus.hhplusconcert.domain.user.UserRepository;
@@ -17,6 +21,7 @@ import com.hhplus.hhplusconcert.domain.user.listener.UserEventListener;
 import com.hhplus.hhplusconcert.integration.common.BaseIntegrationTest;
 import com.hhplus.hhplusconcert.integration.common.TestDataHandler;
 import com.hhplus.hhplusconcert.interfaces.controller.payment.dto.PaymentDto;
+import com.hhplus.hhplusconcert.interfaces.scheduler.OutboxScheduler;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
@@ -33,10 +38,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus;
 import static com.hhplus.hhplusconcert.domain.payment.Payment.PaymentStatus;
+import static com.hhplus.hhplusconcert.support.config.KafkaTopicConfig.KafkaConstants.PAYMENT_TOPIC;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 
 class PaymentIntegrationTest extends BaseIntegrationTest {
@@ -69,6 +74,15 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
     @SpyBean
     private QueueEventListener queueEventListener;
+
+    @Autowired
+    private OutboxRepository outboxRepository;
+
+    @SpyBean
+    private EventProducer eventProducer;
+
+    @Autowired
+    private OutboxScheduler outboxScheduler;
 
 
     @Test
@@ -342,6 +356,102 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
         verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
         verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
         verify(paymentEventListener, times(0)).onPaymentEvent(any(PaymentEvent.class));
+    }
+
+    @Test
+    @DisplayName("결제를 진행하면 이벤트가 발행되고,kafka 메시지가 발행되면 outbox data가 상태가 done 이다.")
+    void payWithEventAndSuccessToPublishKafkaMessage(){
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(200000));
+
+        PaymentDto.Request request = PaymentDto.Request.builder()
+                .reservationId(1L)
+                .userId(1L)
+                .token("jwt-token")
+                .build();
+
+        post(LOCAL_HOST + port + PATH + "/pay", request);
+
+        // when
+        List<Outbox> result = outboxRepository.getOutboxes();
+
+        // then
+        verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(paymentEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+
+        assertSoftly(softly -> {
+            softly.assertThat(result.get(0).getOutboxId()).isEqualTo(1L);
+            softly.assertThat(result.get(0).getStatus()).isEqualTo(Outbox.EventStatus.DONE);
+        });
+    }
+
+    @Test
+    @DisplayName("결제를 진행하면 이벤트가 발행되고,kafka 메시지 발행에 실패하면 outbox data가 상태가 init 이다.")
+    void payWithEventAndFailToPublishKafkaMessage(){
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(200000));
+
+        PaymentDto.Request request = PaymentDto.Request.builder()
+                .reservationId(1L)
+                .userId(1L)
+                .token("jwt-token")
+                .build();
+
+        doThrow(new CustomException(
+                KAFKA_PUBLISH_FAILED, KAFKA_PUBLISH_FAILED.getMsg()))
+                .when(eventProducer).publish(PAYMENT_TOPIC, 1L, "1");
+
+        post(LOCAL_HOST + port + PATH + "/pay", request);
+
+        // when
+        List<Outbox> result = outboxRepository.getOutboxes();
+
+
+        // then
+        verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(paymentEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+
+        assertSoftly(softly -> {
+            softly.assertThat(result.get(0).getOutboxId()).isEqualTo(1L);
+            softly.assertThat(result.get(0).getStatus()).isEqualTo(Outbox.EventStatus.INIT);
+        });
+    }
+
+    @Test
+    @DisplayName("kafka 메시지 발행에 실패하면 outbox data가 상태가 init 이 되고, 스케줄러에 의해 재시도 로직을 수행한다.")
+    void payWithEventAndFailToPublishKafkaMessageAndRetryPublishMessage(){
+        //given
+        testDataHandler.settingUser(BigDecimal.valueOf(200000));
+
+        PaymentDto.Request request = PaymentDto.Request.builder()
+                .reservationId(1L)
+                .userId(1L)
+                .token("jwt-token")
+                .build();
+
+        doThrow(new CustomException(
+                KAFKA_PUBLISH_FAILED, KAFKA_PUBLISH_FAILED.getMsg()))
+                .when(eventProducer).publish(PAYMENT_TOPIC, 1L, "1");
+
+        post(LOCAL_HOST + port + PATH + "/pay", request);
+
+        // when
+        outboxScheduler.retryFailEvent();
+
+        List<Outbox> result = outboxRepository.getOutboxes();
+
+        // then
+        verify(userEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(queueEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+        verify(paymentEventListener, times(1)).onPaymentEvent(any(PaymentEvent.class));
+
+        assertSoftly(softly -> {
+            softly.assertThat(result.get(0).getOutboxId()).isEqualTo(1L);
+            softly.assertThat(result.get(0).getStatus()).isEqualTo(Outbox.EventStatus.INIT);
+            softly.assertThat(result.get(0).getRetryCount()).isEqualTo(1);
+        });
     }
 
 }
