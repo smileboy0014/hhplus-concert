@@ -60,6 +60,10 @@ dependencies {
     // cache
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'com.github.ben-manes.caffeine:caffeine'
+    // kafka
+    // Spring Kafka
+    implementation 'org.springframework.kafka:spring-kafka:3.2.0'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 
 
 

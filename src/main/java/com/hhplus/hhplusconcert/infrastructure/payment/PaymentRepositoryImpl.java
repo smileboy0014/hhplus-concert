@@ -39,6 +39,15 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     }
 
     @Override
+    public Optional<Payment> getCreatedPayment(Long paymentId) {
+        Optional<PaymentEntity> paymentEntity = paymentJpaRepository.findById(paymentId);
+        if (paymentEntity.isPresent()) {
+            return paymentEntity.map(PaymentEntity::toDomain);
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public List<Payment> getPayments() {
         return paymentJpaRepository.findPayments()
                 .stream()

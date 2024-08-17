@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS seat
   COLLATE = utf8mb4_unicode_ci;
 
 CREATE INDEX IDX_SEAT_STATUS ON seat (concert_date_id, status); # 성능 향상을 위한 복합 인덱스 추가
-CREATE INDEX IDX_SEAT_COVERING ON seat (concert_date_id, status, seat_id, seat_number, price, created_at, updated_at, ticket_class, version); # 성능 향상을 위한 커버링 인덱스 추가
+CREATE INDEX IDX_SEAT_COVERING ON seat (concert_date_id, status, seat_id, seat_number, price, created_at, updated_at,
+                                        ticket_class, version);
+# 성능 향상을 위한 커버링 인덱스 추가
 
 -- user 테이블 생성
 CREATE TABLE IF NOT EXISTS users
@@ -118,4 +120,17 @@ CREATE TABLE IF NOT EXISTS waiting_queue
     request_time     DATETIME(6),
     active_time      DATETIME(6),
     PRIMARY KEY (waiting_queue_id)
+) ENGINE = InnoDB;
+
+-- outbox 테이블 생성
+CREATE TABLE IF NOT EXISTS outbox
+(
+    outbox_id     BIGINT NOT NULL AUTO_INCREMENT,
+    type          ENUM ('PAYMENT'),
+    status  ENUM ('INIT','DONE','FAIL'),
+    payload       VARCHAR(255),
+    retry_count   INT NOT NULL DEFAULT 0,
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    PRIMARY KEY (outbox_id)
 ) ENGINE = InnoDB;

@@ -12,6 +12,10 @@ spring:
       prod:
         - file-error-logging
         - slack-error-logging
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: hhplus-01
 server:
   servlet:
     context-path: /api

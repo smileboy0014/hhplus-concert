@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT_IS_FAILED;
+import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT_IS_NOT_FOUND;
 import static java.time.LocalDateTime.now;
 
 @Service
@@ -20,6 +21,17 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final ApplicationEventPublisher publisher;
+
+    @Transactional(readOnly = true)
+    public Payment getPayment(Long paymentId) {
+        Optional<Payment> payment = paymentRepository.getCreatedPayment(paymentId);
+
+        if (payment.isEmpty()) throw new CustomException(PAYMENT_IS_NOT_FOUND,
+                PAYMENT_IS_NOT_FOUND.getMsg());
+
+        return payment.get();
+
+    }
 
     /**
      * 결제를 요청하면 결제 정보를 반환한다.
@@ -43,7 +55,7 @@ public class PaymentService {
             throw new CustomException(PAYMENT_IS_FAILED, "결제 완료 내역 생성에 실패하였습니다");
         }
         // 2. 결제 완료 이벤트 발행
-        publisher.publishEvent(new PaymentEvent(this, reservationInfo, payment, token));
+        publisher.publishEvent(new PaymentEvent(this, reservationInfo, completePayment.get(), token));
 
         return completePayment.get();
     }

@@ -13,6 +13,8 @@ public interface PaymentRepository {
 
     Optional<Payment> getPayment(Long reservationId);
 
+    Optional<Payment> getCreatedPayment(Long paymentId);
+
     List<Payment> getPayments();
 
 
