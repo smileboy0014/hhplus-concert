@@ -19,7 +19,9 @@ public class Outbox {
 
     private Long outboxId;
 
-    private EventType type;
+    private DomainType type; //
+
+    private String messageId; //UUID 값
 
     private EventStatus status;
 
@@ -60,7 +62,7 @@ public class Outbox {
         status = EventStatus.INIT;
     }
 
-    public enum EventType {
+    public enum DomainType {
         PAYMENT,
     }
 
