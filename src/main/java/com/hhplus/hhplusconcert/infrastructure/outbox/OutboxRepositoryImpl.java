@@ -15,8 +15,8 @@ public class OutboxRepositoryImpl implements OutboxRepository {
     private final OutboxJpaRepository outboxJpaRepository;
 
     @Override
-    public Optional<Outbox> getOutbox(Long outboxId) {
-        Optional<OutboxEntity> outboxEntity = outboxJpaRepository.findById(outboxId);
+    public Optional<Outbox> getOutbox(String messageId) {
+        Optional<OutboxEntity> outboxEntity = outboxJpaRepository.findByMessageId(messageId);
         if (outboxEntity.isPresent()) {
             return outboxEntity.map(OutboxEntity::toDomain);
         }
