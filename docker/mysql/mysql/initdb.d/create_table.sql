@@ -126,9 +126,10 @@ CREATE TABLE IF NOT EXISTS waiting_queue
 CREATE TABLE IF NOT EXISTS outbox
 (
     outbox_id     BIGINT NOT NULL AUTO_INCREMENT,
+    message_id     VARCHAR(255),
     type          ENUM ('PAYMENT'),
     status  ENUM ('INIT','DONE','FAIL'),
-    payload       VARCHAR(255),
+    payload       TEXT,
     retry_count   INT NOT NULL DEFAULT 0,
     created_at    DATETIME(6),
     updated_at    DATETIME(6),

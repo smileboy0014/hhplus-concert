@@ -19,9 +19,9 @@ public class Outbox {
 
     private Long outboxId;
 
-    private DomainType type; //
+    private DomainType type;
 
-    private String messageId; //UUID 값
+    private String messageId;
 
     private EventStatus status;
 

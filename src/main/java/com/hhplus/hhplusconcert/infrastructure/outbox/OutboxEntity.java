@@ -30,8 +30,6 @@ public class OutboxEntity extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private EventStatus status;
 
-    @Lob
-    @Column(columnDefinition = "text")
     private String payload;
 
     private int retryCount;
