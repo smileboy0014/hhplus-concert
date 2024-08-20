@@ -24,6 +24,14 @@ public class OutboxRepositoryImpl implements OutboxRepository {
     }
 
     @Override
+    public List<Outbox> getOutboxes() {
+        return outboxJpaRepository.findAll()
+                .stream()
+                .map(OutboxEntity::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<Outbox> saveOutbox(Outbox outbox) {
         OutboxEntity outboxEntity = outboxJpaRepository.save(OutboxEntity.toEntity(outbox));
         return Optional.of(outboxEntity.toDomain());
