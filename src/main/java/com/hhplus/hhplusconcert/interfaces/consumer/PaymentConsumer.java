@@ -1,9 +1,9 @@
 package com.hhplus.hhplusconcert.interfaces.consumer;
 
-import com.hhplus.hhplusconcert.domain.payment.Payment;
-import com.hhplus.hhplusconcert.domain.payment.PaymentService;
 import com.hhplus.hhplusconcert.domain.payment.client.DataPlatformClient;
 import com.hhplus.hhplusconcert.domain.payment.client.PushClient;
+import com.hhplus.hhplusconcert.domain.payment.event.PaymentEvent;
+import com.hhplus.hhplusconcert.support.utils.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -19,15 +19,14 @@ public class PaymentConsumer {
 
     private final DataPlatformClient dataPlatformClient;
     private final PushClient pushClient;
-    private final PaymentService paymentService;
 
     @KafkaListener(topics = PAYMENT_TOPIC, groupId = "hhplus-01")
-    public void sendPaymentInfo(String outboxId, String payload) {
-        log.info("[KAFKA] Received PAYMENT_TOPIC, outBoxId: {}, payload: {}", outboxId, payload);
+    public void sendPaymentInfo(String key, String message) {
+        log.info("[KAFKA] :: CONSUMER:: Received PAYMENT_TOPIC, key: {}, payload: {}", key, message);
 
-        Payment payment = paymentService.getPayment(Long.valueOf(payload));
+        PaymentEvent payload = JsonUtils.toObject(message, PaymentEvent.class);
         // 결제 정보 전달
-        dataPlatformClient.sendPaymentResult(payment);
+        dataPlatformClient.sendPaymentResult(payload.getPayment());
         // kakaotalk 알람 전달
         pushClient.pushKakaotalk();
     }

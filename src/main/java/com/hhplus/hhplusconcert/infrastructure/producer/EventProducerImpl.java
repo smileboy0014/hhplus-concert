@@ -11,7 +11,7 @@ public class EventProducerImpl implements EventProducer {
     private final KafkaProducer kafkaProducer;
 
     @Override
-    public void publish(String topic, Long outboxId, String payload) {
-        kafkaProducer.publish(topic, outboxId, payload);
+    public void publish(String topic, String key, String payload) {
+        kafkaProducer.publish(topic, key, payload);
     }
 }
