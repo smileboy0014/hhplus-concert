@@ -9,7 +9,6 @@ import org.springframework.data.annotation.CreatedDate;
 import java.time.LocalDateTime;
 
 import static com.hhplus.hhplusconcert.domain.outbox.Outbox.EventStatus;
-import static com.hhplus.hhplusconcert.domain.outbox.Outbox.EventType;
 
 @Entity
 @Getter
@@ -23,8 +22,10 @@ public class OutboxEntity extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long outboxId;
 
+    private String messageId;
+
     @Enumerated(EnumType.STRING)
-    private EventType type;
+    private Outbox.DomainType type;
 
     @Enumerated(EnumType.STRING)
     private EventStatus status;
@@ -39,6 +40,7 @@ public class OutboxEntity extends BaseTimeEntity {
     public static OutboxEntity toEntity(Outbox outbox) {
         return OutboxEntity.builder()
                 .outboxId(outbox.getOutboxId())
+                .messageId(outbox.getMessageId())
                 .type(outbox.getType())
                 .status(outbox.getStatus())
                 .payload(outbox.getPayload())
@@ -50,6 +52,7 @@ public class OutboxEntity extends BaseTimeEntity {
     public Outbox toDomain() {
         return Outbox.builder()
                 .outboxId(outboxId)
+                .messageId(messageId)
                 .type(type)
                 .status(status)
                 .payload(payload)

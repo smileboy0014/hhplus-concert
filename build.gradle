@@ -64,7 +64,8 @@ dependencies {
     // Spring Kafka
     implementation 'org.springframework.kafka:spring-kafka:3.2.0'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-
+    // Json 날짜 관련 파싱 문제
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
 
 
 }

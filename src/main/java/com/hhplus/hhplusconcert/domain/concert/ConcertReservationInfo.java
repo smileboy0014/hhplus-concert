@@ -1,10 +1,9 @@
 package com.hhplus.hhplusconcert.domain.concert;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -13,10 +12,12 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.RESERVA
 import static java.time.LocalDateTime.now;
 
 
-@Builder(toBuilder = true)
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
 @ToString
-public class ConcertReservationInfo {
+public class ConcertReservationInfo implements Serializable {
 
     private Long reservationId;
 

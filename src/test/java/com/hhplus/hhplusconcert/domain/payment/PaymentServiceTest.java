@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -25,6 +26,8 @@ class PaymentServiceTest {
 
     @Mock
     private PaymentRepository paymentRepository;
+    @Mock
+    private ApplicationEventPublisher publisher;
     @InjectMocks
     private PaymentService paymentService;
 

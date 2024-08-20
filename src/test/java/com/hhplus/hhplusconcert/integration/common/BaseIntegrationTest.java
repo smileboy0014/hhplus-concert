@@ -20,7 +20,7 @@ import java.util.Map;
 @ActiveProfiles("test")
 @EmbeddedKafka(partitions = 1,
         brokerProperties = {"listeners=PLAINTEXT://localhost:9092"},
-        ports = { 9092 }
+        ports = {9092}
 )
 public class BaseIntegrationTest {
 

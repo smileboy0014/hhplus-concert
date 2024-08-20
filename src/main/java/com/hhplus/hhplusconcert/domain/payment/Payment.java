@@ -5,6 +5,7 @@ import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo;
 import lombok.*;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -17,7 +18,7 @@ import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.PAYMENT
 @Builder(toBuilder = true)
 @Getter
 @ToString
-public class Payment {
+public class Payment implements Serializable {
 
     private Long paymentId;
 

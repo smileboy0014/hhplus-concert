@@ -5,11 +5,11 @@ import java.util.Optional;
 
 public interface OutboxRepository {
 
-    Optional<Outbox> getOutbox(Long outboxId);
-
-    List<Outbox> getOutboxes();
+    Optional<Outbox> getOutbox(String messageId);
 
     Optional<Outbox> saveOutbox(Outbox outbox);
 
     List<Outbox> getRetryOutboxes();
+
+    List<Outbox> getOutboxes();
 }
