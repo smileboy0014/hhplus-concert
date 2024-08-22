@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  k6:
+    image: grafana/k6:latest
+    volumes:
+      - ./scripts:/scripts
+    command: run /scripts/get/test1.js
+#    command: run /scripts/get/test2.js
+#    command: run /scripts/get/test3.js
+#    command: run /scripts/get/test4.js
+#    command: run /scripts/get/test5.js
+#    command: run /scripts/get/test6.js
+#    command: run /scripts/get/testGetIntegration.js
+
+#    command: run /scripts/post/test1.js
+#    command: run /scripts/post/test2.js
+#    command: run /scripts/post/test3.js
+
+#    command: run /scripts/fetch/test1.js
+
+#    command: run /scripts/delete/test1.js
+
