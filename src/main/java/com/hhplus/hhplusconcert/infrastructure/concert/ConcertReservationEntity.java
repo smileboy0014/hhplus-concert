@@ -16,7 +16,11 @@ import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.Res
 @Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "reservation")
+@Table(name = "reservation", uniqueConstraints = {
+        @UniqueConstraint(
+                name="UNIQUE_RESERVATION",
+                columnNames={"concert_id","concert_date_id","seat_number"})
+})
 public class ConcertReservationEntity extends BaseTimeEntity {
 
     @Id

@@ -35,8 +35,8 @@ public class DataBatchLoader {
     }
 
     public void insertMockData() {
-        long totalSize = 1000000;
-        int batchSize = 30000;
+        long totalSize = 10000;
+        int batchSize = 10000;
 
         List<Place> places = new ArrayList<>();
         List<Concert> concerts = new ArrayList<>();
@@ -58,7 +58,7 @@ public class DataBatchLoader {
             int randomDays = random.nextInt(2 * dateRange + 1) - dateRange;
 
             ConcertDate concertDate;
-            if (bound <= 25000) {
+            if (bound <= 50) {
                 concertDate = ConcertDate.builder()
                         .concertId(start)
                         .placeId((long) random.nextInt(1000))
@@ -74,7 +74,7 @@ public class DataBatchLoader {
                 concertDates.add(concertDate);
 
                 bound = 0;
-                start += 100;
+                start += 10;
             }
 
             if (i % batchSize == 0) {
@@ -89,30 +89,32 @@ public class DataBatchLoader {
         }
 
 
-        totalSize = 10000000;
         batchSize = 500000;
 
-        for (long i = 1; i <= totalSize; i++) {
+        for (long i = 1; i <= 30; i++) {
+            for (int j = 0; j < 50000; j++) {
 
-            Seat seat = Seat.builder()
-                    .price(BigDecimal.valueOf(100000 + random.nextDouble() * 10000))
-                    .seatNumber((int) i)
-                    .ticketClass(TicketClass.values()[random.nextInt(TicketClass.values().length)])
-                    .concertDateId(i % 1000)
-                    .version(1)
-                    .status(random.nextBoolean() ? SeatStatus.AVAILABLE : SeatStatus.UNAVAILABLE)
-                    .build();
-            seats.add(seat);
+                Seat seat = Seat.builder()
+                        .price(BigDecimal.valueOf(100000 + random.nextDouble() * 10000))
+                        .seatNumber(j)
+                        .ticketClass(TicketClass.values()[random.nextInt(TicketClass.values().length)])
+                        .concertDateId(i)
+                        .version(1)
+                        .status(random.nextBoolean() ? SeatStatus.AVAILABLE : SeatStatus.UNAVAILABLE)
+                        .build();
+                seats.add(seat);
 
-            if (seats.size() == batchSize) {
+                if (seats.size() == batchSize) {
+                    batchInsertSeats(seats);
+                    seats.clear();
+                }
+            }
+
+            if (!seats.isEmpty()) {
                 batchInsertSeats(seats);
-                seats.clear();
             }
         }
 
-        if (!seats.isEmpty()) {
-            batchInsertSeats(seats);
-        }
 
     }
 

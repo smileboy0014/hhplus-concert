@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS concert_date
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci;
 
+CREATE INDEX IDX_CONCERT_DATE ON concert_date (concert_id, concert_date);
+
 -- seat 테이블 생성
 CREATE TABLE IF NOT EXISTS seat
 (
@@ -93,7 +95,8 @@ CREATE TABLE IF NOT EXISTS reservation
     reserved_at     DATETIME(6),
     created_at      DATETIME(6),
     updated_at      DATETIME(6),
-    PRIMARY KEY (reservation_id)
+    PRIMARY KEY (reservation_id),
+    UNIQUE KEY unique_reservation (concert_id, concert_date_id, seat_number)
 ) ENGINE = InnoDB;
 
 -- payment 테이블 생성
@@ -125,13 +128,13 @@ CREATE TABLE IF NOT EXISTS waiting_queue
 -- outbox 테이블 생성
 CREATE TABLE IF NOT EXISTS outbox
 (
-    outbox_id     BIGINT NOT NULL AUTO_INCREMENT,
-    message_id     VARCHAR(255),
-    type          ENUM ('PAYMENT'),
-    status  ENUM ('INIT','DONE','FAIL'),
-    payload       TEXT,
-    retry_count   INT NOT NULL DEFAULT 0,
-    created_at    DATETIME(6),
-    updated_at    DATETIME(6),
+    outbox_id   BIGINT NOT NULL AUTO_INCREMENT,
+    message_id  VARCHAR(255),
+    type        ENUM ('PAYMENT'),
+    status      ENUM ('INIT','DONE','FAIL'),
+    payload     TEXT,
+    retry_count INT    NOT NULL DEFAULT 0,
+    created_at  DATETIME(6),
+    updated_at  DATETIME(6),
     PRIMARY KEY (outbox_id)
 ) ENGINE = InnoDB;

@@ -10,7 +10,8 @@ import lombok.*;
 @Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "concert_date")
+@Table(name = "concert_date", indexes = {
+        @Index(name = "IDX_CONCERT_DATE", columnList = "concert_id, concert_date")})
 public class ConcertDateEntity extends BaseTimeEntity {
 
     @Id
