@@ -11,7 +11,7 @@ services:
     cap_add:
       - SYS_NICE
     container_name: concert-mysql
-    image: ubuntu/mysql:edge
+    image: ubuntu/mysql
     restart: always
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --explicit_defaults_for_timestamp=1
     ports:
@@ -24,3 +24,5 @@ services:
       - TZ=Asia/Seoul
     volumes:
       - ./mysql/initdb.d:/docker-entrypoint-initdb.d
+      - ./mysql/mysql-config:/etc/mysql/conf.d  # Mount the custom configuration file
+      - ./mysql/mysql-logs:/var/log  # Mount the custom configuration file
