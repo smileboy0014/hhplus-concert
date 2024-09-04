@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,20 +44,30 @@ class ConcertServiceTest {
     @DisplayName("콘서트 목록을 반환한다.")
     void getConcerts() {
         //given
-        Concert concert1 = Concert.builder()
-                .name("싸이 흠뻑쇼")
-                .build();
+//        Concert concert1 = Concert.builder()
+//                .name("싸이 흠뻑쇼")
+//                .build();
+//
+//        Concert concert2 = Concert.builder()
+//                .name("god 콘서트")
+//                .build();
+//        List<Concert> concerts = List.of(concert1, concert2);
 
-        Concert concert2 = Concert.builder()
-                .name("god 콘서트")
-                .build();
+        Page<Concert> response = new PageImpl<>(List.of(Concert.builder()
+                        .concertId(1L)
+                        .name("싸이 흠뻑쇼")
+                        .build(),
+                Concert.builder()
+                        .concertId(2L)
+                        .name("싸이 흠뻑쇼")
+                        .build()));
 
-        List<Concert> concerts = List.of(concert1, concert2);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
 
-        when(concertRepository.getConcerts()).thenReturn(concerts);
+        when(concertRepository.getConcerts(pageable)).thenReturn(response);
 
         //when
-        List<Concert> result = concertService.getConcerts();
+        Page<Concert> result = concertService.getConcerts(pageable);
 
         //then
         assertThat(result).hasSize(2);
@@ -66,12 +77,13 @@ class ConcertServiceTest {
     @DisplayName("콘서트 정보가 없으면 빈 배열을 반환한다.")
     void getConcertsWithEmptyList() {
         //given
-        List<Concert> concerts = List.of();
+//        List<Concert> concerts = List.of();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
 
-        when(concertRepository.getConcerts()).thenReturn(concerts);
+        when(concertRepository.getConcerts(pageable)).thenReturn(Page.empty());
 
         //when
-        List<Concert> result = concertService.getConcerts();
+        Page<Concert> result = concertService.getConcerts(pageable);
 
         //then
         assertThat(result).isEmpty();

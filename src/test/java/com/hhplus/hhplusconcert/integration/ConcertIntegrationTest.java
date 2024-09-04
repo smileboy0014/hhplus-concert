@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -183,13 +185,14 @@ class ConcertIntegrationTest extends BaseIntegrationTest {
     void GetConcertsWithCache() {
         // given
         long startTimeWithoutCache = System.nanoTime();
-        concertService.getConcerts();
+        Pageable pageable = PageRequest.of(0, 10);
+        concertService.getConcerts(pageable);
         long endTimeWithoutCache = System.nanoTime();
         long durationWithoutCache = endTimeWithoutCache - startTimeWithoutCache;
 
         // when
         long startTimeWithCache = System.nanoTime();
-        concertService.getConcerts();
+        concertService.getConcerts(pageable);
         long endTimeWithCache = System.nanoTime();
         long durationWithCache = endTimeWithCache - startTimeWithCache;
 

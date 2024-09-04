@@ -11,6 +11,10 @@ import org.redisson.api.RDelayedQueue;
 import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +42,7 @@ public class ConcertService {
         delayedReservationQueue = redissonClient.getDelayedQueue(tempReservationQueue);
     }
 
+
     /**
      * 콘서트 정보를 요청하면 콘서트 정보를 반환한다.
      *
@@ -48,10 +53,12 @@ public class ConcertService {
             @Cacheable(cacheManager = "l2RedisCacheManager", cacheNames = "concerts", value = "concerts")
     })
     @Transactional(readOnly = true)
-    public List<Concert> getConcerts() {
-        List<Concert> concerts = concertRepository.getConcerts();
+    public Page<Concert> getConcerts(Pageable pageable) {
+//        List<Concert> concerts = concertRepository.getConcerts();
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdAt").descending());
+        Page<Concert> concerts = concertRepository.getConcerts(sortedPageable);
 
-        return concerts.stream()
+        return concerts
                 .map(concert -> {
                     List<ConcertDate> concertDates = concertRepository.getConcertDates(concert.getConcertId());
                     return Concert.builder()
@@ -59,7 +66,7 @@ public class ConcertService {
                             .name(concert.getName())
                             .concertDates(concertDates)
                             .build();
-                }).toList();
+                });
     }
 
     /**

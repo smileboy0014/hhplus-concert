@@ -2,6 +2,8 @@ package com.hhplus.hhplusconcert.infrastructure.concert;
 
 import com.hhplus.hhplusconcert.domain.concert.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,11 +25,9 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     private final ReservationJpaRepository reservationJpaRepository;
 
     @Override
-    public List<Concert> getConcerts() {
-        return concertJpaRepository.findAll()
-                .stream()
-                .map(ConcertEntity::toDomain)
-                .toList();
+    public Page<Concert> getConcerts(Pageable pageable) {
+        return concertJpaRepository.findAll(pageable)
+                .map(ConcertEntity::toDomain);
     }
 
     @Override

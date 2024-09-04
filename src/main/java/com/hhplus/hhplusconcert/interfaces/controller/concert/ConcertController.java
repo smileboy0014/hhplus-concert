@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,12 +40,11 @@ public class ConcertController {
     @Operation(summary = "콘서트 목록 조회")
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ConcertDto.Response.class))))
     @GetMapping
-    public ApiResultResponse<List<ConcertDto.Response>> getConcerts() {
+    public ApiResultResponse<Page<ConcertDto.Response>> getConcerts(Pageable pageable) {
 
         return ApiResultResponse.ok(
-                concertFacade.getConcerts().stream()
-                        .map(ConcertDto.Response::of)
-                        .toList());
+                concertFacade.getConcerts(pageable)
+                        .map(ConcertDto.Response::of));
     }
 
     /**
