@@ -4,7 +4,10 @@ import com.hhplus.hhplusconcert.domain.concert.Concert;
 import com.hhplus.hhplusconcert.domain.concert.ConcertDate;
 import com.hhplus.hhplusconcert.domain.concert.ConcertService;
 import com.hhplus.hhplusconcert.domain.concert.Seat;
+import com.hhplus.hhplusconcert.domain.concert.command.ConcertCommand;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,8 +23,8 @@ public class ConcertFacade {
      *
      * @return ConcertResponse 콘서트 목록을 반환한다.
      */
-    public List<Concert> getConcerts() {
-        return concertService.getConcerts();
+    public Page<Concert> getConcerts(Pageable pageable) {
+        return concertService.getConcerts(pageable);
     }
 
     /**
@@ -54,4 +57,7 @@ public class ConcertFacade {
         return concertService.getAvailableSeats(concertDateId);
     }
 
+    public Concert saveConcert(ConcertCommand.Create command) {
+        return concertService.saveConcert(command);
+    }
 }

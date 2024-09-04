@@ -18,8 +18,8 @@ import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.Res
 @AllArgsConstructor
 @Table(name = "reservation", uniqueConstraints = {
         @UniqueConstraint(
-                name="UNIQUE_RESERVATION",
-                columnNames={"concert_id","concert_date_id","seat_number"})
+                name = "UNIQUE_RESERVATION",
+                columnNames = {"concert_id", "concert_date_id", "seat_number"})
 })
 public class ConcertReservationEntity extends BaseTimeEntity {
 

@@ -1,11 +1,14 @@
 package com.hhplus.hhplusconcert.domain.concert;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
 public interface ConcertRepository {
 
-    List<Concert> getConcerts();
+    Page<Concert> getConcerts(Pageable pageable);
 
     List<ConcertDate> getConcertDates(Long concertId);
 

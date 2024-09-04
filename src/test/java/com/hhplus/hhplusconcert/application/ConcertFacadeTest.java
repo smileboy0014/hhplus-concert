@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -45,20 +49,20 @@ class ConcertFacadeTest {
     @DisplayName("콘서트 목록 조회 유즈케이스를 실행한다.")
     void getConcerts() {
         //given
-        List<Concert> response = List.of(
-                Concert.builder()
+        Page<Concert> response = new PageImpl<>(List.of(Concert.builder()
                         .concertId(1L)
                         .name("싸이 흠뻑쇼")
                         .build(),
                 Concert.builder()
                         .concertId(2L)
                         .name("싸이 흠뻑쇼")
-                        .build()
-        );
-        when(concertService.getConcerts()).thenReturn(response);
+                        .build()));
+
+        Pageable pageable = PageRequest.of(1, 10);
+        when(concertService.getConcerts(pageable)).thenReturn(response);
 
         //when
-        List<Concert> result = concertFacade.getConcerts();
+        Page<Concert> result = concertFacade.getConcerts(pageable);
 
         //then
         assertThat(result).hasSize(2);

@@ -2,6 +2,7 @@ package com.hhplus.hhplusconcert.domain.concert;
 
 import com.hhplus.hhplusconcert.domain.common.exception.CustomException;
 import com.hhplus.hhplusconcert.domain.common.exception.ErrorCode;
+import com.hhplus.hhplusconcert.domain.concert.command.ConcertCommand;
 import com.hhplus.hhplusconcert.domain.concert.command.ReservationCommand;
 import com.hhplus.hhplusconcert.domain.payment.command.PaymentCommand;
 import jakarta.annotation.PostConstruct;
@@ -9,8 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBlockingQueue;
 import org.redisson.api.RDelayedQueue;
 import org.redisson.api.RedissonClient;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.CONCERT_IS_NOT_FOUND;
 import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus.TEMPORARY_RESERVED;
 
 @Service
@@ -38,20 +45,22 @@ public class ConcertService {
         delayedReservationQueue = redissonClient.getDelayedQueue(tempReservationQueue);
     }
 
+
     /**
      * 콘서트 정보를 요청하면 콘서트 정보를 반환한다.
      *
      * @return 콘서트 정보를 반환한다.
      */
     @Caching(cacheable = {
-            @Cacheable(cacheManager = "l1LocalCacheManager", cacheNames = "concerts", value = "concerts"),
-            @Cacheable(cacheManager = "l2RedisCacheManager", cacheNames = "concerts", value = "concerts")
+            @Cacheable(cacheManager = "l1LocalCacheManager", value = "concerts", key = "#pageable.pageNumber"),
+            @Cacheable(cacheManager = "l2RedisCacheManager", value = "concerts", key = "#pageable.pageNumber")
     })
     @Transactional(readOnly = true)
-    public List<Concert> getConcerts() {
-        List<Concert> concerts = concertRepository.getConcerts();
+    public Page<Concert> getConcerts(Pageable pageable) {
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdAt").descending());
+        Page<Concert> concerts = concertRepository.getConcerts(sortedPageable);
 
-        return concerts.stream()
+        return concerts
                 .map(concert -> {
                     List<ConcertDate> concertDates = concertRepository.getConcertDates(concert.getConcertId());
                     return Concert.builder()
@@ -59,7 +68,26 @@ public class ConcertService {
                             .name(concert.getName())
                             .concertDates(concertDates)
                             .build();
-                }).toList();
+                });
+    }
+
+    /**
+     * 콘서트 정보를 저장합니다.
+     *
+     * @return 콘서트 정보를 반환한다.
+     */
+    @Caching(evict = {
+            @CacheEvict(value = "concerts", allEntries = true, cacheManager = "l1LocalCacheManager"),
+            @CacheEvict(value = "concerts", allEntries = true, cacheManager = "l2RedisCacheManager"),
+    })
+
+    public Concert saveConcert(ConcertCommand.Create command) {
+        Concert concert = Concert.builder().name(command.concertName()).build();
+        Optional<Concert> savedConcert = concertRepository.saveConcert(concert);
+
+        if (savedConcert.isEmpty()) throw new CustomException(CONCERT_IS_NOT_FOUND, CONCERT_IS_NOT_FOUND.getMsg());
+
+        return savedConcert.get();
     }
 
     /**
@@ -252,4 +280,6 @@ public class ConcertService {
             }
         }).start();
     }
+
+
 }

@@ -12,12 +12,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.CONCERT_DATE_IS_NOT_FOUND;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.SEAT_IS_NOT_FOUND;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -37,17 +41,16 @@ class ConcertControllerTest {
     @DisplayName("콘서트 목록을 조회한다.")
     void getConcerts() throws Exception {
         //given
-        List<Concert> response = List.of(Concert.builder()
-                .concertId(1L)
-                .name("싸이 흠뻑쇼")
-                .concertDates(List.of(ConcertDate.builder()
-                        .place(Place.builder()
-                                .name("올림픽 경기장").build())
-                        .build()))
+        Page<Concert> response = new PageImpl<>(List.of(Concert.builder()
+                        .concertId(1L)
+                        .name("싸이 흠뻑쇼")
+                        .build(),
+                Concert.builder()
+                        .concertId(2L)
+                        .name("싸이 흠뻑쇼")
+                        .build()));
 
-                .build());
-
-        when(concertFacade.getConcerts()).thenReturn(response);
+        when(concertFacade.getConcerts(any(Pageable.class))).thenReturn(response);
 
         //when //then
         mockMvc.perform(get("/v1/concerts"))
@@ -55,16 +58,15 @@ class ConcertControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.msg").value("OK"))
-                .andExpect(jsonPath("$.data").isArray());
+                .andExpect(jsonPath("$.data.content").isArray());
     }
 
     @Test
     @DisplayName("콘서트 목록이 없으면 빈 배열을 반환한다.")
     void getConcertsWithEmpty() throws Exception {
         //given
-        List<Concert> response = List.of();
-
-        when(concertFacade.getConcerts()).thenReturn(response);
+//        List<Concert> response = List.of();
+        when(concertFacade.getConcerts(any(Pageable.class))).thenReturn(Page.empty());
 
         //when //then
         mockMvc.perform(get("/v1/concerts"))
@@ -72,7 +74,7 @@ class ConcertControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.msg").value("OK"))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.content").isEmpty());
     }
 
     @Test
@@ -130,7 +132,6 @@ class ConcertControllerTest {
     void getConcertDatesWithUnavailableDate() throws Exception {
         //given
         Long concertId = 1L;
-        List<ConcertDate> response = List.of();
 
         when(concertFacade.getAvailableConcertDates(concertId)).thenThrow(
                 new CustomException(CONCERT_DATE_IS_NOT_FOUND,
@@ -170,8 +171,6 @@ class ConcertControllerTest {
     void getSeatsWithUnAvailableSeat() throws Exception {
         //given
         Long concertDateId = 1L;
-        List<Seat> response = List.of(Seat.builder()
-                .seatNumber(100).build());
 
         //when
         when(concertFacade.getAvailableSeats(concertDateId)).thenThrow(
