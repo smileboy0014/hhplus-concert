@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
@@ -57,7 +58,8 @@ class ConcertIntegrationTest extends BaseIntegrationTest {
         //then
         assertSoftly(softly -> {
             softly.assertThat(result.statusCode()).isEqualTo(200);
-            softly.assertThat(result.body().jsonPath().getList("data").size()).isEqualTo(2);
+            List<ConcertDto.Response> content = result.body().jsonPath().getList("data.content", ConcertDto.Response.class);
+            softly.assertThat(content.size()).isEqualTo(2);
         });
     }
 
@@ -73,7 +75,8 @@ class ConcertIntegrationTest extends BaseIntegrationTest {
         //then
         assertSoftly(softly -> {
             softly.assertThat(result.statusCode()).isEqualTo(200);
-            softly.assertThat(result.body().jsonPath().getList("data")).isEqualTo(new ArrayList<>());
+            List<ConcertDto.Response> content = result.body().jsonPath().getList("data.content", ConcertDto.Response.class);
+            softly.assertThat(content).isEqualTo(new ArrayList<>());
         });
     }
 

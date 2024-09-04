@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.hhplus.hhplusconcert.domain.common.exception.ErrorCode.*;
 import static com.hhplus.hhplusconcert.domain.concert.ConcertReservationInfo.ReservationStatus;
 import static com.hhplus.hhplusconcert.domain.payment.Payment.PaymentStatus;
-import static com.hhplus.hhplusconcert.support.config.KafkaTopicConfig.KafkaConstants.PAYMENT_TOPIC;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -393,7 +392,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
         doThrow(new CustomException(
                 KAFKA_PUBLISH_FAILED, KAFKA_PUBLISH_FAILED.getMsg()))
-                .when(eventProducer).publish(PAYMENT_TOPIC, "1", "1");
+                .when(eventProducer).publish(any(), any(String.class), any(String.class));
 
         post(LOCAL_HOST + port + PATH + "/pay", request);
 
@@ -425,7 +424,7 @@ class PaymentIntegrationTest extends BaseIntegrationTest {
 
         doThrow(new CustomException(
                 KAFKA_PUBLISH_FAILED, KAFKA_PUBLISH_FAILED.getMsg()))
-                .when(eventProducer).publish(PAYMENT_TOPIC, "1", "1");
+                .when(eventProducer).publish(any(), any(String.class), any(String.class));
 
         post(LOCAL_HOST + port + PATH + "/pay", request);
 

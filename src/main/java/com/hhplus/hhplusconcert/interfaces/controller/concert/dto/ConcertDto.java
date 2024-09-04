@@ -2,6 +2,8 @@ package com.hhplus.hhplusconcert.interfaces.controller.concert.dto;
 
 import com.hhplus.hhplusconcert.domain.concert.Concert;
 import com.hhplus.hhplusconcert.domain.concert.ConcertDate;
+import com.hhplus.hhplusconcert.domain.concert.command.ConcertCommand;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 import java.util.Comparator;
@@ -13,12 +15,20 @@ import static com.hhplus.hhplusconcert.support.utils.StringUtils.getPeriod;
 public class ConcertDto {
 
     @Builder(toBuilder = true)
+    public record Request(@NotBlank String concertName) {
+        public ConcertCommand.Create toCreateCommand() {
+            return new ConcertCommand.Create(concertName);
+        }
+    }
+
+    @Builder(toBuilder = true)
     public record Response(Long concertId, String name, String place, String period) {
         public static Response of(Concert concert) {
             return Response.builder()
                     .concertId(concert.getConcertId())
                     .name(concert.getName())
-                    .place(!concert.getConcertDates().isEmpty() ? concert.getConcertDates().get(0).getPlace().getName()
+                    .place((concert.getConcertDates() != null && !concert.getConcertDates().isEmpty())
+                            ? concert.getConcertDates().get(0).getPlace().getName()
                             : "-")
                     .period(getConcertPeriod(concert.getConcertDates()))
                     .build();

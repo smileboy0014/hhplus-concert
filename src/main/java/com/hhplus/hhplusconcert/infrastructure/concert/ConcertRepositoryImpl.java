@@ -28,6 +28,14 @@ public class ConcertRepositoryImpl implements ConcertRepository {
     public Page<Concert> getConcerts(Pageable pageable) {
         return concertJpaRepository.findAll(pageable)
                 .map(ConcertEntity::toDomain);
+
+//        Page<Concert> concerts = concertJpaRepository.findAll(pageable)
+//                .map(ConcertEntity::toDomain);
+//        if (concerts.isEmpty()) {
+//            return Page.empty();
+//        }
+//
+//        return concerts;
     }
 
     @Override
