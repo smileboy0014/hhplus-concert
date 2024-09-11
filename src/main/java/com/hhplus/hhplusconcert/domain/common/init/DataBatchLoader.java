@@ -8,7 +8,6 @@ import com.hhplus.hhplusconcert.domain.concert.Seat.SeatStatus;
 import com.hhplus.hhplusconcert.support.utils.DateUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,7 +28,7 @@ public class DataBatchLoader {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @Bean
+    //    @Bean
     ApplicationRunner init() {
         return args -> insertMockData();
     }
